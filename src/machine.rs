@@ -1,41 +1,39 @@
-use crate::arch::{Address, PageAddr, Word, WordBits};
-
 #[derive(Debug, Clone)]
 pub struct Machine {
-    memory: Box<[Word]>,
-    ra: Word,
-    rx: Word,
-    ry: Word,
-    sp: PageAddr,
+    memory: Box<[u8]>,
+    ra: u8,
+    rx: u8,
+    ry: u8,
+    sp: u8,
     sr: Status,
-    pc: Address,
+    pc: u16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Status {
-    flags: Word,
+    flags: u8,
 }
 
 impl Status {
-    const NEGATIVE: WordBits = 7;
-    const OVERFLOW: WordBits = 6;
-    const BREAK: WordBits = 4;
-    const DECIMAL: WordBits = 3;
-    const INTERRUPT: WordBits = 2;
-    const ZERO: WordBits = 1;
-    const CARRY: WordBits = 0;
+    const NEGATIVE: u8 = 7;
+    const OVERFLOW: u8 = 6;
+    const BREAK: u8 = 4;
+    const DECIMAL: u8 = 3;
+    const INTERRUPT: u8 = 2;
+    const ZERO: u8 = 1;
+    const CARRY: u8 = 0;
 
     pub fn zeroed() -> Self {
         Self::default()
     }
 
-    fn get(&self, flag: WordBits) -> bool {
-        self.flags.bits & (1 << flag) != 0
+    fn get(&self, flag: u8) -> bool {
+        self.flags & (1 << flag) != 0
     }
 
-    fn set(&mut self, flag: WordBits, value: bool) {
-        self.flags.bits &= !(1 << flag);
-        self.flags.bits |= WordBits::from(value) << flag;
+    fn set(&mut self, flag: u8, value: bool) {
+        self.flags &= !(1 << flag);
+        self.flags |= u8::from(value) << flag;
     }
 
     pub fn get_n(&self) -> bool {

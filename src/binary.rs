@@ -64,3 +64,34 @@ pub trait Decode: Sized {
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct NoConfig;
+
+macro_rules! impl_for_int {
+    { $ty:ty } => {
+        impl Decode for $ty {
+            type Config = NoConfig;
+
+            fn decode<R>(
+                _config: &Self::Config,
+                decoder: &mut Decoder<R>,
+            ) -> io::Result<Self>
+            where
+                R: Read
+            {
+                let mut buf = [0; std::mem::size_of::<$ty>()];
+                decoder.read_exact(&mut buf)?;
+                Ok(Self::from_le_bytes(buf))
+            }
+        }
+    };
+}
+
+impl_for_int! { u8 }
+impl_for_int! { i8 }
+impl_for_int! { u16 }
+impl_for_int! { i16 }
+impl_for_int! { u32 }
+impl_for_int! { i32 }
+impl_for_int! { u64 }
+impl_for_int! { i64 }
+impl_for_int! { u128 }
+impl_for_int! { i128 }

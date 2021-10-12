@@ -13,6 +13,9 @@ pub mod type_jsr;
 pub mod type_bch;
 pub mod type_imp;
 
+use crate::binary::{Decode, Decoder, NoConfig};
+use std::io::{self, Read};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct GenericInstr<O, A> {
     pub opcode: O,
@@ -35,4 +38,18 @@ pub enum InstrKind {
     Jsr(type_jsr::Instruction),
     Bch(type_bch::Instruction),
     Imp(type_imp::Instruction),
+}
+
+impl Decode for InstrKind {
+    type Config = NoConfig;
+
+    fn decode<R>(
+        config: &Self::Config,
+        decoder: &mut Decoder<R>,
+    ) -> io::Result<Self>
+    where
+        R: Read,
+    {
+        todo!()
+    }
 }

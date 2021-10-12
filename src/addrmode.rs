@@ -1,7 +1,4 @@
-use crate::{
-    arch::{Address, RelativeAddr, Word, PageAddr},
-    binary::{Decode, Decoder, NoConfig},
-};
+use crate::binary::{Decode, Decoder, NoConfig};
 use std::io::{self, Read};
 
 macro_rules! decode_for_wrapper {
@@ -43,57 +40,57 @@ macro_rules! decode_for_unit {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Absolute {
-    pub address: Address,
+    pub address: u16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct AbsoluteX {
-    pub address: Address,
+    pub address: u16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct AbsoluteY {
-    pub address: Address,
+    pub address: u16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Immediate {
-    pub data: Word,
+    pub bits: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Indirect {
-    pub address: Address,
+    pub address: u16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct XIndirect {
-    pub address: PageAddr,
+    pub address: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct IndirectY {
-    pub address: PageAddr,
+    pub address: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Relative {
-    pub address: RelativeAddr,
+    pub address: i8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Zeropage {
-    pub address: PageAddr,
+    pub address: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct ZeropageX {
-    pub address: PageAddr,
+    pub address: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct ZeropageY {
-    pub address: PageAddr,
+    pub address: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -105,7 +102,7 @@ pub struct Implied;
 decode_for_wrapper! { Absolute { address } }
 decode_for_wrapper! { AbsoluteX { address } }
 decode_for_wrapper! { AbsoluteY { address } }
-decode_for_wrapper! { Immediate { data } }
+decode_for_wrapper! { Immediate { bits } }
 decode_for_wrapper! { Indirect { address } }
 decode_for_wrapper! { XIndirect { address } }
 decode_for_wrapper! { IndirectY { address } }
@@ -115,27 +112,3 @@ decode_for_wrapper! { ZeropageX { address } }
 decode_for_wrapper! { ZeropageY { address } }
 decode_for_unit! { Accumulator }
 decode_for_unit! { Implied }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum AOperAddrMode {
-    XInd(XIndirect),
-    Zpg(Zeropage),
-    Imm(Immediate),
-    Abs(Address),
-    IndY(IndirectY),
-    ZpgX(ZeropageX),
-    AbsY(AbsoluteY),
-    AbsX(AbsoluteX),
-}
-
-impl AOperAddrMode {
-    pub const CODE_X_IND: u8 = 0;
-    pub const CODE_ZPG: u8 = 1;
-    pub const CODE_IMM: u8 = 2;
-    pub const CODE_ABS: u8 = 3;
-
-    pub const CODE_IND_Y: u8 = 4;
-    pub const CODE_ZPG_X: u8 = 5;
-    pub const CODE_ABS_Y: u8 = 6;
-    pub const CODE_ABS_X: u8 = 7;
-}
