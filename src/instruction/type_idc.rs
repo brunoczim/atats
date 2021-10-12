@@ -9,7 +9,7 @@ use crate::{
         Zeropage,
         ZeropageX,
     },
-    instruction::Instruction as GenericInstr,
+    instruction::GenericInstr,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

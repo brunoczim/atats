@@ -1,6 +1,6 @@
 use crate::{
     addrmode::{Absolute, Zeropage, ZeropageY},
-    instruction::Instruction as GenericInstr,
+    instruction::GenericInstr,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

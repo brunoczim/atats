@@ -1,41 +1,24 @@
-use crate::{
-    arch::{Address, RelativeAddr, Word, ZeropageAddr},
-    binary::{Decode, Decoder, NoConfig},
+use crate::arch::{Address, RelativeAddr, Word, ZeropageAddr};
+use nom::{
+    combinator::{map, success},
+    IResult,
 };
-use std::io::{self, Read};
 
 macro_rules! decode_for_wrapper {
-    { $outer:ty { $field:ident } } => {
-        impl Decode for $outer {
-            type Config = NoConfig;
-
-            fn decode<R>(
-                _config: &Self::Config,
-                decoder: &mut Decoder<R>,
-            ) -> io::Result<Self>
-            where
-                R: Read,
-            {
-                let $field = decoder.decode()?;
-                Ok(Self { $field })
+    { $ty:ty { $field:ident: $field_ty:ty } } => {
+        impl $ty {
+            pub fn decode(input: &[u8]) -> IResult<&[u8], Self> {
+                map(<$field_ty>::decode, |$field| Self { $field })(input)
             }
         }
     };
 }
 
 macro_rules! decode_for_unit {
-    { $outer:ty } => {
-        impl Decode for $outer {
-            type Config = NoConfig;
-
-            fn decode<R>(
-                _config: &Self::Config,
-                _decoder: &mut Decoder<R>,
-            ) -> io::Result<Self>
-            where
-                R: Read,
-            {
-                Ok(Self)
+    { $ty:ty } => {
+        impl $ty {
+            pub fn decode(input: &[u8]) -> IResult<&[u8], Self> {
+                success(Self)(input)
             }
         }
     };
@@ -102,17 +85,16 @@ pub struct Accumulator;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Implied;
 
-decode_for_wrapper! { Absolute { address } }
-decode_for_wrapper! { AbsoluteX { address } }
-decode_for_wrapper! { AbsoluteY { address } }
-decode_for_wrapper! { Immediate { data } }
-decode_for_wrapper! { Indirect { address } }
-decode_for_wrapper! { XIndirect { address } }
-decode_for_wrapper! { IndirectY { address } }
-decode_for_wrapper! { Relative { address } }
-decode_for_wrapper! { Zeropage { address } }
-decode_for_wrapper! { ZeropageX { address } }
-decode_for_wrapper! { ZeropageY { address } }
+decode_for_wrapper! { Absolute { address: Address } }
+decode_for_wrapper! { AbsoluteX { address: Address } }
+decode_for_wrapper! { AbsoluteY { address: Address } }
+decode_for_wrapper! { Immediate { data: Word } }
+decode_for_wrapper! { Indirect { address: Address } }
+decode_for_wrapper! { XIndirect { address: ZeropageAddr } }
+decode_for_wrapper! { Relative { address: RelativeAddr } }
+decode_for_wrapper! { Zeropage { address: ZeropageAddr } }
+decode_for_wrapper! { ZeropageX { address: ZeropageAddr } }
+decode_for_wrapper! { ZeropageY { address: ZeropageAddr } }
 decode_for_unit! { Accumulator }
 decode_for_unit! { Implied }
 

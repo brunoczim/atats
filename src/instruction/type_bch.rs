@@ -1,4 +1,4 @@
-use crate::{addrmode::Relative, instruction::Instruction as GenericInstr};
+use crate::{addrmode::Relative, instruction::GenericInstr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Opcode {

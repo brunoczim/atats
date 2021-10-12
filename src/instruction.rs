@@ -14,7 +14,7 @@ pub mod type_bch;
 pub mod type_imp;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct Instruction<O, A> {
+pub struct GenericInstr<O, A> {
     pub opcode: O,
     pub addrmode: A,
 }
