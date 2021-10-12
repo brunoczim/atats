@@ -1,14 +1,5 @@
 use crate::{
-    addrmode::{
-        Absolute,
-        AbsoluteX,
-        AbsoluteY,
-        Immediate,
-        IndirectY,
-        XIndirect,
-        Zeropage,
-        ZeropageX,
-    },
+    addrmode::{Absolute, AbsoluteX, Zeropage, ZeropageX},
     instruction::GenericInstr,
 };
 

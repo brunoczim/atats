@@ -1,61 +1,91 @@
-use nom::{bytes::complete::take, combinator::map, IResult};
+use crate::binary::{Decode, Decoder, NoConfig};
+use std::io::{self, Read};
+
+pub type WordBits = u8;
+pub type AddressBits = u16;
+pub type PageAddrBits = u8;
+pub type RelativeAddrBits = i8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Word {
-    pub bits: u8,
+    pub bits: WordBits,
 }
 
-impl Word {
-    fn from_bits(bits: &[u8]) -> Self {
-        Self { bits: bits[0] }
-    }
+impl Decode for Word {
+    type Config = NoConfig;
 
-    pub fn decode(input: &[u8]) -> IResult<&[u8], Self> {
-        map(take(1usize), Self::from_bits)(input)
+    fn decode<R>(
+        _config: &Self::Config,
+        decoder: &mut Decoder<R>,
+    ) -> io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut buf = [0; 1];
+        decoder.read_exact(&mut buf)?;
+        Ok(Self { bits: buf[0] })
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Address {
-    pub bits: u16,
+    pub bits: AddressBits,
 }
 
-impl Address {
-    fn from_bits(bits: &[u8]) -> Self {
-        Self { bits: u16::from_le_bytes([bits[0], bits[1]]) }
-    }
+impl Decode for Address {
+    type Config = NoConfig;
 
-    pub fn decode(input: &[u8]) -> IResult<&[u8], Self> {
-        map(take(2usize), Self::from_bits)(input)
+    fn decode<R>(
+        _config: &Self::Config,
+        decoder: &mut Decoder<R>,
+    ) -> io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut buf = [0; 2];
+        decoder.read_exact(&mut buf)?;
+        Ok(Self { bits: AddressBits::from_le_bytes(buf) })
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct ZeropageAddr {
-    pub bits: u8,
+pub struct PageAddr {
+    pub bits: PageAddrBits,
 }
 
-impl ZeropageAddr {
-    fn from_bits(bits: &[u8]) -> Self {
-        Self { bits: bits[0] }
-    }
+impl Decode for PageAddr {
+    type Config = NoConfig;
 
-    pub fn decode(input: &[u8]) -> IResult<&[u8], Self> {
-        map(take(1usize), Self::from_bits)(input)
+    fn decode<R>(
+        _config: &Self::Config,
+        decoder: &mut Decoder<R>,
+    ) -> io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut buf = [0; 1];
+        decoder.read_exact(&mut buf)?;
+        Ok(Self { bits: buf[0] })
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct RelativeAddr {
-    pub bits: i8,
+    pub bits: RelativeAddrBits,
 }
 
-impl RelativeAddr {
-    fn from_bits(bits: &[u8]) -> Self {
-        Self { bits: i8::from_le_bytes([bits[0]]) }
-    }
+impl Decode for RelativeAddr {
+    type Config = NoConfig;
 
-    pub fn decode(input: &[u8]) -> IResult<&[u8], Self> {
-        map(take(2usize), Self::from_bits)(input)
+    fn decode<R>(
+        _config: &Self::Config,
+        decoder: &mut Decoder<R>,
+    ) -> io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut buf = [0; 1];
+        decoder.read_exact(&mut buf)?;
+        Ok(Self { bits: RelativeAddrBits::from_le_bytes(buf) })
     }
 }
