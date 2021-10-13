@@ -112,3 +112,57 @@ decode_for_wrapper! { ZeropageX { address } }
 decode_for_wrapper! { ZeropageY { address } }
 decode_for_unit! { Accumulator }
 decode_for_unit! { Implied }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum AddrMode {
+    Acc(Accumulator),
+    Abs(Absolute),
+    AbsX(AbsoluteX),
+    AbsY(AbsoluteY),
+    Imm(Immediate),
+    Impl(Implied),
+    Ind(Indirect),
+    XInd(XIndirect),
+    IndY(IndirectY),
+    Rel(Relative),
+    Zpg(Zeropage),
+    ZpgX(ZeropageX),
+    ZpgY(ZeropageY),
+}
+
+impl AddrMode {
+    pub fn kind(self) -> AddrModeKind {
+        match self {
+            AddrMode::Acc(_) => AddrModeKind::Acc,
+            AddrMode::Abs(_) => AddrModeKind::Abs,
+            AddrMode::AbsX(_) => AddrModeKind::AbsX,
+            AddrMode::AbsY(_) => AddrModeKind::AbsY,
+            AddrMode::Imm(_) => AddrModeKind::Imm,
+            AddrMode::Impl(_) => AddrModeKind::Impl,
+            AddrMode::Ind(_) => AddrModeKind::Ind,
+            AddrMode::XInd(_) => AddrModeKind::XInd,
+            AddrMode::IndY(_) => AddrModeKind::IndY,
+            AddrMode::Rel(_) => AddrModeKind::Rel,
+            AddrMode::Zpg(_) => AddrModeKind::Zpg,
+            AddrMode::ZpgX(_) => AddrModeKind::ZpgX,
+            AddrMode::ZpgY(_) => AddrModeKind::ZpgY,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum AddrModeKind {
+    Acc,
+    Abs,
+    AbsX,
+    AbsY,
+    Imm,
+    Impl,
+    Ind,
+    XInd,
+    IndY,
+    Rel,
+    Zpg,
+    ZpgX,
+    ZpgY,
+}

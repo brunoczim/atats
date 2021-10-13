@@ -1,55 +1,61 @@
-pub mod type_aop;
-pub mod type_ldx;
-pub mod type_ldy;
-pub mod type_sta;
-pub mod type_stx;
-pub mod type_sty;
-pub mod type_cxy;
-pub mod type_rsh;
-pub mod type_idc;
-pub mod type_bit;
-pub mod type_jmp;
-pub mod type_jsr;
-pub mod type_bch;
-pub mod type_imp;
+use crate::addrmode::AddrMode;
 
-use crate::binary::{Decode, Decoder, NoConfig};
-use std::io::{self, Read};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct GenericInstr<O, A> {
-    pub opcode: O,
-    pub addrmode: A,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Instruction {
+    pub opcode: Opcode,
+    pub addrmode: AddrMode,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum InstrKind {
-    Aop(type_aop::Instruction),
-    Ldx(type_ldx::Instruction),
-    Ldy(type_ldy::Instruction),
-    Sta(type_sta::Instruction),
-    Stx(type_stx::Instruction),
-    Sty(type_sty::Instruction),
-    Cxy(type_cxy::Instruction),
-    Rsh(type_rsh::Instruction),
-    Idc(type_idc::Instruction),
-    Bit(type_bit::Instruction),
-    Jmp(type_jmp::Instruction),
-    Jsr(type_jsr::Instruction),
-    Bch(type_bch::Instruction),
-    Imp(type_imp::Instruction),
-}
-
-impl Decode for InstrKind {
-    type Config = NoConfig;
-
-    fn decode<R>(
-        config: &Self::Config,
-        decoder: &mut Decoder<R>,
-    ) -> io::Result<Self>
-    where
-        R: Read,
-    {
-        todo!()
-    }
+pub enum Opcode {
+    Ora,
+    And,
+    Eor,
+    Adc,
+    Lda,
+    Cmp,
+    Sbc,
+    Bpl,
+    Bmi,
+    Bvc,
+    Bcc,
+    Bcs,
+    Bne,
+    Beq,
+    Bit,
+    Cpx,
+    Cpy,
+    Inc,
+    Dec,
+    Inx,
+    Iny,
+    Dex,
+    Dey,
+    Brk,
+    Php,
+    Rti,
+    Clc,
+    Plp,
+    Sec,
+    Pha,
+    Cli,
+    Pla,
+    Sei,
+    Tya,
+    Tay,
+    Clv,
+    Cld,
+    Sed,
+    Nop,
+    Jmp,
+    Jsr,
+    Ldx,
+    Ldy,
+    Asl,
+    Rol,
+    Lsr,
+    Ror,
+    Sta,
+    Stx,
+    Sty,
 }
