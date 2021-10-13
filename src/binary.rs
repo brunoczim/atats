@@ -1,4 +1,82 @@
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
+
+#[derive(Debug, Clone)]
+pub struct Encoder<W>
+where
+    W: Write,
+{
+    writer: W,
+}
+
+impl<W> Encoder<W>
+where
+    W: Write,
+{
+    pub fn new(writer: W) -> Self {
+        Self { writer }
+    }
+
+    pub fn encode<T>(&mut self, data: T) -> io::Result<()>
+    where
+        T: Encode<Config = NoConfig>,
+    {
+        self.encode_with(data, &NoConfig)
+    }
+
+    pub fn encode_with<T>(
+        &mut self,
+        data: T,
+        config: &T::Config,
+    ) -> io::Result<()>
+    where
+        T: Encode,
+    {
+        data.encode(config, self)
+    }
+}
+
+impl<W> Write for Encoder<W>
+where
+    W: Write,
+{
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.writer.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.writer.flush()
+    }
+}
+
+pub trait Encode {
+    type Config: ?Sized;
+
+    fn encode<W>(
+        &self,
+        config: &Self::Config,
+        encoder: &mut Encoder<W>,
+    ) -> io::Result<()>
+    where
+        W: Write;
+}
+
+impl<'this, T> Encode for &'this T
+where
+    T: Encode + ?Sized,
+{
+    type Config = T::Config;
+
+    fn encode<W>(
+        &self,
+        config: &Self::Config,
+        encoder: &mut Encoder<W>,
+    ) -> io::Result<()>
+    where
+        W: Write,
+    {
+        (**self).encode(config, encoder)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Decoder<R>
@@ -80,6 +158,22 @@ macro_rules! impl_for_int {
                 let mut buf = [0; std::mem::size_of::<$ty>()];
                 decoder.read_exact(&mut buf)?;
                 Ok(Self::from_le_bytes(buf))
+            }
+        }
+
+        impl Encode for $ty {
+            type Config = NoConfig;
+
+            fn encode<W>(
+                &self,
+                _config: &Self::Config,
+                encoder: &mut Encoder<W>,
+            ) -> io::Result<()>
+            where
+                W: Write
+            {
+                let buf = self.to_le_bytes();
+                encoder.write_all(&buf)
             }
         }
     };
