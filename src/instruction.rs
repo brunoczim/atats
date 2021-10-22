@@ -1,13 +1,19 @@
-use crate::addrmode::AddrMode;
+use crate::addrmode::{AddrMode, Operand};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Instruction {
-    pub opcode: Opcode,
+pub struct Opcode {
+    pub mnemonic: Mnemonic,
     pub addrmode: AddrMode,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Opcode {
+pub struct Instruction {
+    pub mnemonic: Mnemonic,
+    pub operand: Operand,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Mnemonic {
     Ora,
     And,
     Eor,
