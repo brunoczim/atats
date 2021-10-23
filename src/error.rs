@@ -1,6 +1,19 @@
 use std::{error::Error, fmt};
 
 #[derive(Debug, Clone)]
+pub struct BankError {
+    pub bank: u8,
+}
+
+impl fmt::Display for BankError {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "invalid ROM bank 0x{:x}", self.bank)
+    }
+}
+
+impl Error for BankError {}
+
+#[derive(Debug, Clone)]
 pub struct ReadError {
     pub address: u16,
 }
@@ -43,5 +56,30 @@ impl Error for OpcodeError {}
 pub enum MachineError {
     Read(ReadError),
     Write(WriteError),
+    Bank(BankError),
     Opcode(OpcodeError),
+}
+
+impl From<ReadError> for MachineError {
+    fn from(error: ReadError) -> Self {
+        MachineError::Read(error)
+    }
+}
+
+impl From<WriteError> for MachineError {
+    fn from(error: WriteError) -> Self {
+        MachineError::Write(error)
+    }
+}
+
+impl From<BankError> for MachineError {
+    fn from(error: BankError) -> Self {
+        MachineError::Bank(error)
+    }
+}
+
+impl From<OpcodeError> for MachineError {
+    fn from(error: OpcodeError) -> Self {
+        MachineError::Opcode(error)
+    }
 }
