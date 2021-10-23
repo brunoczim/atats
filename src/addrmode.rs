@@ -1,17 +1,16 @@
 use crate::binary::{Decode, Decoder, Encode, Encoder, NoConfig};
-use std::io::{self, Read, Write};
 
 macro_rules! decode_for_wrapper {
     { $outer:ty { $field:ident: $field_ty:ty } } => {
         impl Decode for $outer {
             type Config = <$field_ty as Decode>::Config;
 
-            fn decode<R>(
+            fn decode<D>(
                 config: &Self::Config,
-                decoder: &mut Decoder<R>,
-            ) -> io::Result<Self>
+                decoder: &mut D,
+            ) -> Result<Self, D::Error>
             where
-                R: Read,
+                D: Decoder + ?Sized,
             {
                 let $field = decoder.decode_with(config)?;
                 Ok(Self { $field })
@@ -19,17 +18,14 @@ macro_rules! decode_for_wrapper {
         }
 
         impl Encode for $outer {
-            type Config = <$field_ty as Encode>::Config;
-
-            fn encode<W>(
+            fn encode<E>(
                 &self,
-                config: &Self::Config,
-                encoder: &mut Encoder<W>,
-            ) -> io::Result<()>
+                encoder: &mut E,
+            ) -> Result<(), E::Error>
             where
-                W: Write
+                E: Encoder + ?Sized
             {
-                encoder.encode_with(&self.$field, config)
+                encoder.encode(&self.$field)
             }
         }
     };
@@ -40,27 +36,24 @@ macro_rules! decode_for_unit {
         impl Decode for $outer {
             type Config = NoConfig;
 
-            fn decode<R>(
+            fn decode<D>(
                 _config: &Self::Config,
-                _decoder: &mut Decoder<R>,
-            ) -> io::Result<Self>
+                _decoder: &mut D,
+            ) -> Result<Self, D::Error>
             where
-                R: Read,
+                D: Decoder + ?Sized,
             {
                 Ok(Self)
             }
         }
 
         impl Encode for $outer {
-            type Config = NoConfig;
-
-            fn encode<W>(
+            fn encode<E>(
                 &self,
-                _config: &Self::Config,
-                _encoder: &mut Encoder<W>,
-            ) -> io::Result<()>
+                _encoder: &mut E,
+            ) -> Result<(), E::Error>
             where
-                W: Write
+                E: Encoder + ?Sized
             {
                 Ok(())
             }
@@ -200,12 +193,12 @@ impl Operand {
 impl Decode for Operand {
     type Config = AddrMode;
 
-    fn decode<R>(
+    fn decode<D>(
         config: &Self::Config,
-        decoder: &mut Decoder<R>,
-    ) -> io::Result<Self>
+        decoder: &mut D,
+    ) -> Result<Self, D::Error>
     where
-        R: Read,
+        D: Decoder + ?Sized,
     {
         match config {
             AddrMode::Acc => decoder.decode().map(Operand::Acc),
@@ -226,15 +219,9 @@ impl Decode for Operand {
 }
 
 impl Encode for Operand {
-    type Config = NoConfig;
-
-    fn encode<W>(
-        &self,
-        _config: &Self::Config,
-        encoder: &mut Encoder<W>,
-    ) -> io::Result<()>
+    fn encode<E>(&self, encoder: &mut E) -> Result<(), E::Error>
     where
-        W: io::Write,
+        E: Encoder + ?Sized,
     {
         match self {
             Operand::Acc(data) => encoder.encode(data),

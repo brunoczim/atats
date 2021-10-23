@@ -49,6 +49,16 @@ impl RomBank {
         Self { bytes: content }
     }
 
+    pub fn try_new(slice: &[u8]) -> Option<Self> {
+        let mut bytes = [0; Self::SIZE];
+        if slice.len() == bytes.len() {
+            bytes.copy_from_slice(slice);
+            Some(Self::new(bytes))
+        } else {
+            None
+        }
+    }
+
     pub fn read(&self, address: u16) -> Result<u8, ReadError> {
         address
             .checked_sub(Self::OFFSET)
@@ -85,7 +95,7 @@ impl Rom {
         self.selected
     }
 
-    pub fn select_bank(&self, bank: u8) -> Result<(), BankError> {
+    pub fn select_bank(&mut self, bank: u8) -> Result<(), BankError> {
         if usize::from(bank) < self.banks.len() {
             self.selected = bank;
             Ok(())

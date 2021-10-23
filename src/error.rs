@@ -1,4 +1,4 @@
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, io};
 
 #[derive(Debug, Clone)]
 pub struct BankError {
@@ -53,12 +53,28 @@ impl fmt::Display for OpcodeError {
 impl Error for OpcodeError {}
 
 #[derive(Debug, Clone)]
+pub enum NoExternalError {}
+
+#[derive(Debug, Clone)]
 pub enum MachineError {
     Read(ReadError),
     Write(WriteError),
     Bank(BankError),
     Opcode(OpcodeError),
 }
+
+impl fmt::Display for MachineError {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MachineError::Read(error) => write!(fmtr, "{}", error),
+            MachineError::Write(error) => write!(fmtr, "{}", error),
+            MachineError::Bank(error) => write!(fmtr, "{}", error),
+            MachineError::Opcode(error) => write!(fmtr, "{}", error),
+        }
+    }
+}
+
+impl Error for MachineError {}
 
 impl From<ReadError> for MachineError {
     fn from(error: ReadError) -> Self {
@@ -81,5 +97,19 @@ impl From<BankError> for MachineError {
 impl From<OpcodeError> for MachineError {
     fn from(error: OpcodeError) -> Self {
         MachineError::Opcode(error)
+    }
+}
+
+impl From<MachineError> for io::Error {
+    fn from(error: MachineError) -> Self {
+        let kind = match error {
+            MachineError::Read(_) | MachineError::Write(_) => {
+                io::ErrorKind::AddrNotAvailable
+            },
+            MachineError::Bank(_) => io::ErrorKind::NotFound,
+            MachineError::Opcode(_) => io::ErrorKind::InvalidData,
+        };
+
+        io::Error::new(kind, error)
     }
 }
