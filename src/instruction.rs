@@ -268,6 +268,53 @@ pub struct Instruction {
     pub operand: Operand,
 }
 
+#[allow(unused_macros)]
+macro_rules! mnemonic_opcodes {
+    (
+        match (bits_a, bits_b, bits_c) {
+            $((
+                $pat_a:literal $(| $pats_a:literal)*,
+                $pat_b:literal $(| $pats_b:literal)*,
+                $pat_c:literal $(| $pats_c:literal)*$(,)?
+            ) => $mnemonic:ident,)*
+        }
+    ) => {
+        impl Mnemonic {
+            pub fn from_opcode_bits(opcode: u8) -> Result<Self, OpcodeError> {
+                let bits_a = opcode_bits_a(opcode);
+                let bits_b = opcode_bits_b(opcode);
+                let bits_c = opcode_bits_c(opcode);
+                match (bits_a, bits_b, bits_c) {
+                    $((
+                        $pat_a $(|$pats_a)*,
+                        $pat_b $(|$pats_b)*,
+                        $pat_c $(|$pats_c)*,
+                    ) => Ok(Mnemonic::$mnemonic),)*
+                    _ => Err(OpcodeError { bits: opcode })
+                }
+            }
+
+            pub fn to_opcode_bits(self) -> u8 {
+                match self {
+                    $(Mnemonic::$mnemonic => {
+                        let mut opcode = 0;
+                        if [$pat_a $(, $pats_a)*].len() == 1 {
+                            opcode = set_opcode_bits_a(opcode, $pat_a);
+                        }
+                        if [$pat_b $(, $pats_b)*].len() == 1 {
+                            opcode = set_opcode_bits_b(opcode, $pat_b);
+                        }
+                        if [$pat_c $(, $pats_c)*].len() == 1 {
+                            opcode = set_opcode_bits_c(opcode, $pat_c);
+                        }
+                        opcode
+                    },)*
+                }
+            }
+        }
+    };
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Mnemonic {
     Ora,
@@ -326,70 +373,66 @@ pub enum Mnemonic {
     Sty,
 }
 
-impl Mnemonic {
-    pub fn from_opcode_bits(opcode: u8) -> Result<Self, OpcodeError> {
-        let bits_a = opcode_bits_a(opcode);
-        let bits_b = opcode_bits_b(opcode);
-        let bits_c = opcode_bits_c(opcode);
-        match (bits_a, bits_b, bits_c) {
-            (0, 0, 0) => Ok(Mnemonic::Brk),
-            (0, 2, 0) => Ok(Mnemonic::Php),
-            (0, 4, 0) => Ok(Mnemonic::Bpl),
-            (0, 6, 0) => Ok(Mnemonic::Clc),
-            (0, _, 1) => Ok(Mnemonic::Ora),
-            (0, _, 2) => Ok(Mnemonic::Asl),
-            (1, 0, 0) => Ok(Mnemonic::Jsr),
-            (1, 1 | 3, 0) => Ok(Mnemonic::Bit),
-            (1, 2, 0) => Ok(Mnemonic::Plp),
-            (1, 4, 0) => Ok(Mnemonic::Bmi),
-            (1, 6, 0) => Ok(Mnemonic::Sec),
-            (1, _, 1) => Ok(Mnemonic::And),
-            (1, _, 2) => Ok(Mnemonic::Rol),
-            (2, 0, 0) => Ok(Mnemonic::Rts),
-            (2, 2, 0) => Ok(Mnemonic::Pha),
-            (2 | 3, 3, 0) => Ok(Mnemonic::Jmp),
-            (2, 4, 0) => Ok(Mnemonic::Bvc),
-            (2, 6, 0) => Ok(Mnemonic::Cli),
-            (2, _, 1) => Ok(Mnemonic::Eor),
-            (2, _, 2) => Ok(Mnemonic::Lsr),
-            (3, 0, 0) => Ok(Mnemonic::Rts),
-            (3, 2, 0) => Ok(Mnemonic::Pla),
-            (3, 4, 0) => Ok(Mnemonic::Bvs),
-            (3, 6, 0) => Ok(Mnemonic::Sei),
-            (3, _, 0) => Ok(Mnemonic::Adc),
-            (3, _, 1) => Ok(Mnemonic::Ror),
-            (4, 1 | 3 | 5, 0) => Ok(Mnemonic::Sty),
-            (4, 2, 0) => Ok(Mnemonic::Dey),
-            (4, 4, 0) => Ok(Mnemonic::Bcc),
-            (4, 6, 0) => Ok(Mnemonic::Tya),
-            (4, _, 1) => Ok(Mnemonic::Sta),
-            (4, 1 | 3 | 5, 2) => Ok(Mnemonic::Stx),
-            (4, 2, 2) => Ok(Mnemonic::Txa),
-            (4, 6, 2) => Ok(Mnemonic::Txs),
-            (5, 0 | 1 | 3 | 5 | 7, 0) => Ok(Mnemonic::Ldy),
-            (5, 2, 0) => Ok(Mnemonic::Tay),
-            (5, 4, 0) => Ok(Mnemonic::Bcs),
-            (5, 6, 0) => Ok(Mnemonic::Clv),
-            (5, _, 1) => Ok(Mnemonic::Lda),
-            (5, 0 | 1 | 3 | 5 | 7, 2) => Ok(Mnemonic::Ldx),
-            (6, 0 | 1 | 3, 0) => Ok(Mnemonic::Cpy),
-            (6, 2, 0) => Ok(Mnemonic::Iny),
-            (6, 4, 0) => Ok(Mnemonic::Bne),
-            (6, 6, 0) => Ok(Mnemonic::Cld),
-            (6, _, 1) => Ok(Mnemonic::Cmp),
-            (6, 1 | 3 | 5 | 7, 2) => Ok(Mnemonic::Dec),
-            (6, 2, 2) => Ok(Mnemonic::Dex),
-            (7, 0 | 1 | 3, 0) => Ok(Mnemonic::Cpx),
-            (7, 2, 0) => Ok(Mnemonic::Inx),
-            (7, 4, 0) => Ok(Mnemonic::Beq),
-            (7, 6, 0) => Ok(Mnemonic::Sed),
-            (7, _, 1) => Ok(Mnemonic::Sbc),
-            (7, 1 | 3 | 5 | 7, 2) => Ok(Mnemonic::Inc),
-            (7, 2, 2) => Ok(Mnemonic::Nop),
-            _ => Err(OpcodeError { bits: opcode }),
-        }
+mnemonic_opcodes! {
+    match (bits_a, bits_b, bits_c) {
+        (0, 0, 0) => Brk,
+        (0, 2, 0) => Php,
+        (0, 4, 0) => Bpl,
+        (0, 6, 0) => Clc,
+        (0, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 1) => Ora,
+        (0, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 2) => Asl,
+        (1, 0, 0) => Jsr,
+        (1, 1 | 3, 0) => Bit,
+        (1, 2, 0) => Plp,
+        (1, 4, 0) => Bmi,
+        (1, 6, 0) => Sec,
+        (1, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 1) => And,
+        (1, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 2) => Rol,
+        (2, 0, 0) => Rti,
+        (2, 2, 0) => Pha,
+        (2 | 3, 3, 0) => Jmp,
+        (2, 4, 0) => Bvc,
+        (2, 6, 0) => Cli,
+        (2, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 1) => Eor,
+        (2, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 2) => Lsr,
+        (3, 0, 0) => Rts,
+        (3, 2, 0) => Pla,
+        (3, 4, 0) => Bvs,
+        (3, 6, 0) => Sei,
+        (3, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 1) => Adc,
+        (3, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 2) => Ror,
+        (4, 1 | 3 | 5, 0) => Sty,
+        (4, 2, 0) => Dey,
+        (4, 4, 0) => Bcc,
+        (4, 6, 0) => Tya,
+        (4, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 1) => Sta,
+        (4, 1 | 3 | 5, 2) => Stx,
+        (4, 2, 2) => Txa,
+        (4, 6, 2) => Txs,
+        (5, 0 | 1 | 3 | 5 | 7, 0) => Ldy,
+        (5, 2, 0) => Tay,
+        (5, 4, 0) => Bcs,
+        (5, 6, 0) => Clv,
+        (5, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 1) => Lda,
+        (5, 0 | 1 | 3 | 5 | 7, 2) => Ldx,
+        (6, 0 | 1 | 3, 0) => Cpy,
+        (6, 2, 0) => Iny,
+        (6, 4, 0) => Bne,
+        (6, 6, 0) => Cld,
+        (6, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 1) => Cmp,
+        (6, 1 | 3 | 5 | 7, 2) => Dec,
+        (6, 2, 2) => Dex,
+        (7, 0 | 1 | 3, 0) => Cpx,
+        (7, 2, 0) => Inx,
+        (7, 4, 0) => Beq,
+        (7, 6, 0) => Sed,
+        (7, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 1) => Sbc,
+        (7, 1 | 3 | 5 | 7, 2) => Inc,
+        (7, 2, 2) => Nop,
     }
+}
 
+impl Mnemonic {
     pub fn instr_type(self) -> Type {
         match self {
             Mnemonic::Ora
