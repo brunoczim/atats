@@ -79,6 +79,7 @@ pub enum MachineError {
     Write(WriteError),
     Bank(BankError),
     Opcode(OpcodeError),
+    AddrMode(AddrModeError),
 }
 
 impl fmt::Display for MachineError {
@@ -88,6 +89,7 @@ impl fmt::Display for MachineError {
             MachineError::Write(error) => write!(fmtr, "{}", error),
             MachineError::Bank(error) => write!(fmtr, "{}", error),
             MachineError::Opcode(error) => write!(fmtr, "{}", error),
+            MachineError::AddrMode(error) => write!(fmtr, "{}", error),
         }
     }
 }
@@ -118,6 +120,12 @@ impl From<OpcodeError> for MachineError {
     }
 }
 
+impl From<AddrModeError> for MachineError {
+    fn from(error: AddrModeError) -> Self {
+        MachineError::AddrMode(error)
+    }
+}
+
 impl From<MachineError> for io::Error {
     fn from(error: MachineError) -> Self {
         let kind = match error {
@@ -126,6 +134,7 @@ impl From<MachineError> for io::Error {
             },
             MachineError::Bank(_) => io::ErrorKind::NotFound,
             MachineError::Opcode(_) => io::ErrorKind::InvalidData,
+            MachineError::AddrMode(_) => io::ErrorKind::InvalidInput,
         };
 
         io::Error::new(kind, error)

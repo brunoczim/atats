@@ -1,7 +1,5 @@
-use std::{
-    convert::Infallible,
-    io::{self, Write},
-};
+use crate::error::MachineError;
+use std::io::{self, Write};
 
 pub trait Encode {
     fn encode<E>(&self, encoder: &mut E) -> Result<(), E::Error>
@@ -22,7 +20,7 @@ where
 }
 
 pub trait Encoder {
-    type Error;
+    type Error: From<MachineError>;
 
     fn write(&mut self, buf: &[u8]) -> Result<(), Self::Error>;
 
@@ -78,7 +76,7 @@ impl<'buf> VecEncoder<'buf> {
 }
 
 impl<'buf> Encoder for VecEncoder<'buf> {
-    type Error = Infallible;
+    type Error = MachineError;
 
     fn write(&mut self, buf: &[u8]) -> Result<(), Self::Error> {
         self.output.extend_from_slice(buf);
