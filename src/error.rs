@@ -1,5 +1,7 @@
 use std::{error::Error, fmt, io};
 
+use crate::{addrmode::AddrMode, instruction::Type};
+
 #[derive(Debug, Clone)]
 pub struct BankError {
     pub bank: u8,
@@ -53,7 +55,23 @@ impl fmt::Display for OpcodeError {
 impl Error for OpcodeError {}
 
 #[derive(Debug, Clone)]
-pub enum NoExternalError {}
+pub struct AddrModeError {
+    pub mode: AddrMode,
+    pub instr_type: Type,
+}
+
+impl fmt::Display for AddrModeError {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            fmtr,
+            "invalid addressing mode combination of {} with instruction type \
+             {}",
+            self.mode, self.instr_type
+        )
+    }
+}
+
+impl Error for AddrModeError {}
 
 #[derive(Debug, Clone)]
 pub enum MachineError {

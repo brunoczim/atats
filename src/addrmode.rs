@@ -1,4 +1,5 @@
 use crate::binary::{Decode, Decoder, Encode, Encoder, NoConfig};
+use std::fmt;
 
 macro_rules! decode_for_wrapper {
     { $outer:ty { $field:ident: $field_ty:ty } } => {
@@ -151,6 +152,26 @@ pub enum AddrMode {
     Zpg,
     ZpgX,
     ZpgY,
+}
+
+impl fmt::Display for AddrMode {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            AddrMode::Acc => write!(fmtr, "ACC"),
+            AddrMode::Abs => write!(fmtr, "ABS"),
+            AddrMode::AbsX => write!(fmtr, "ABSX"),
+            AddrMode::AbsY => write!(fmtr, "ABSY"),
+            AddrMode::Imm => write!(fmtr, "IMM"),
+            AddrMode::Impl => write!(fmtr, "IMPL"),
+            AddrMode::Ind => write!(fmtr, "IND"),
+            AddrMode::XInd => write!(fmtr, "XIND"),
+            AddrMode::IndY => write!(fmtr, "INDY"),
+            AddrMode::Rel => write!(fmtr, "REL"),
+            AddrMode::Zpg => write!(fmtr, "ZPG"),
+            AddrMode::ZpgX => write!(fmtr, "ZPGX"),
+            AddrMode::ZpgY => write!(fmtr, "ZPGY"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
