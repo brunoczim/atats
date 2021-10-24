@@ -63,7 +63,7 @@ impl RomBank {
         address
             .checked_sub(Self::OFFSET)
             .and_then(|actual_address| {
-                self.bytes.get(usize::from(address)).copied()
+                self.bytes.get(usize::from(actual_address)).copied()
             })
             .ok_or(ReadError { address })
     }
@@ -80,7 +80,7 @@ impl Rom {
     where
         I: IntoIterator<Item = RomBank>,
     {
-        let mut banks = iter::once(default_bank)
+        let banks = iter::once(default_bank)
             .chain(additional_banks)
             .collect::<Vec<_>>();
 
@@ -144,7 +144,7 @@ impl Memory {
         self.ram.read(address).or_else(|_| self.rom.read(address))
     }
 
-    pub fn write(&self, address: u16, data: u8) -> Result<(), WriteError> {
+    pub fn write(&mut self, address: u16, data: u8) -> Result<(), WriteError> {
         self.ram.write(address, data)
     }
 }
