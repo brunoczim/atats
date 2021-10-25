@@ -7,8 +7,43 @@ pub struct Ram {
 }
 
 impl Ram {
-    pub const SIZE: usize = 128;
+    pub const SIZE: usize = 0x80;
     pub const OFFSET: u16 = 0x80;
+
+    pub fn new() -> Self {
+        Self { bytes: Box::new([0; Self::SIZE]) }
+    }
+
+    pub fn read(&self, address: u16) -> Result<u8, ReadError> {
+        address
+            .checked_sub(Self::OFFSET)
+            .and_then(|actual_address| {
+                self.bytes.get(usize::from(actual_address)).copied()
+            })
+            .ok_or(ReadError { address })
+    }
+
+    pub fn write(&mut self, address: u16, data: u8) -> Result<(), WriteError> {
+        let entry = address
+            .checked_sub(Self::OFFSET)
+            .and_then(|actual_address| {
+                self.bytes.get_mut(usize::from(actual_address))
+            })
+            .ok_or(WriteError { address })?;
+        *entry = data;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Stack {
+    bytes: Box<[u8; Self::SIZE]>,
+}
+
+impl Stack {
+    pub const SIZE: usize = 0x100;
+
+    pub const OFFSET: u16 = 0x100;
 
     pub fn new() -> Self {
         Self { bytes: Box::new([0; Self::SIZE]) }
@@ -41,7 +76,7 @@ pub struct RomBank {
 }
 
 impl RomBank {
-    pub const SIZE: usize = 4096;
+    pub const SIZE: usize = 0x1000;
 
     pub const OFFSET: u16 = 0x1000;
 
@@ -116,12 +151,13 @@ impl Rom {
 #[derive(Debug, Clone)]
 pub struct Memory {
     ram: Ram,
+    stack: Stack,
     rom: Rom,
 }
 
 impl Memory {
-    pub fn new(ram: Ram, rom: Rom) -> Self {
-        Self { ram, rom }
+    pub fn new(ram: Ram, stack: Stack, rom: Rom) -> Self {
+        Self { ram, stack, rom }
     }
 
     pub fn rom(&self) -> Rom {
@@ -141,10 +177,15 @@ impl Memory {
     }
 
     pub fn read(&self, address: u16) -> Result<u8, ReadError> {
-        self.ram.read(address).or_else(|_| self.rom.read(address))
+        self.ram
+            .read(address)
+            .or_else(|_| self.stack.read(address))
+            .or_else(|_| self.rom.read(address))
     }
 
     pub fn write(&mut self, address: u16, data: u8) -> Result<(), WriteError> {
-        self.ram.write(address, data)
+        self.ram
+            .write(address, data)
+            .or_else(|_| self.stack.write(address, data))
     }
 }

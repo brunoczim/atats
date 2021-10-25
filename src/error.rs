@@ -1,3 +1,4 @@
+use crate::addrmode::Operand;
 use std::{error::Error, fmt, io};
 
 use crate::{addrmode::AddrMode, instruction::Type};
@@ -74,12 +75,48 @@ impl fmt::Display for AddrModeError {
 impl Error for AddrModeError {}
 
 #[derive(Debug, Clone)]
+pub struct OperandReadError {
+    pub operand: Operand,
+}
+
+impl fmt::Display for OperandReadError {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            fmtr,
+            "invalid addressing mode {} for source operand",
+            self.operand.addrmode()
+        )
+    }
+}
+
+impl Error for OperandReadError {}
+
+#[derive(Debug, Clone)]
+pub struct OperandAddrError {
+    pub operand: Operand,
+}
+
+impl fmt::Display for OperandAddrError {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            fmtr,
+            "invalid addressing mode {} for destination operand",
+            self.operand.addrmode()
+        )
+    }
+}
+
+impl Error for OperandAddrError {}
+
+#[derive(Debug, Clone)]
 pub enum MachineError {
     Read(ReadError),
     Write(WriteError),
     Bank(BankError),
     Opcode(OpcodeError),
     AddrMode(AddrModeError),
+    OperandRead(OperandReadError),
+    OperandAddr(OperandAddrError),
 }
 
 impl fmt::Display for MachineError {
@@ -90,6 +127,8 @@ impl fmt::Display for MachineError {
             MachineError::Bank(error) => write!(fmtr, "{}", error),
             MachineError::Opcode(error) => write!(fmtr, "{}", error),
             MachineError::AddrMode(error) => write!(fmtr, "{}", error),
+            MachineError::OperandRead(error) => write!(fmtr, "{}", error),
+            MachineError::OperandAddr(error) => write!(fmtr, "{}", error),
         }
     }
 }
@@ -126,6 +165,18 @@ impl From<AddrModeError> for MachineError {
     }
 }
 
+impl From<OperandReadError> for MachineError {
+    fn from(error: OperandReadError) -> Self {
+        MachineError::OperandRead(error)
+    }
+}
+
+impl From<OperandAddrError> for MachineError {
+    fn from(error: OperandAddrError) -> Self {
+        MachineError::OperandAddr(error)
+    }
+}
+
 impl From<MachineError> for io::Error {
     fn from(error: MachineError) -> Self {
         let kind = match error {
@@ -133,7 +184,9 @@ impl From<MachineError> for io::Error {
                 io::ErrorKind::AddrNotAvailable
             },
             MachineError::Bank(_) => io::ErrorKind::NotFound,
-            MachineError::Opcode(_) => io::ErrorKind::InvalidData,
+            MachineError::Opcode(_)
+            | MachineError::OperandRead(_)
+            | MachineError::OperandAddr(_) => io::ErrorKind::InvalidData,
             MachineError::AddrMode(_) => io::ErrorKind::InvalidInput,
         };
 
