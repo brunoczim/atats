@@ -152,8 +152,8 @@ impl Machine {
         }
     }
 
-    pub fn steps(&mut self, max_steps: u64) -> Result<(), MachineError> {
-        for _ in 0 .. max_steps {
+    pub fn steps(&mut self, count: u64) -> Result<(), MachineError> {
+        for _ in 0 .. count {
             self.step()?;
         }
         Ok(())
