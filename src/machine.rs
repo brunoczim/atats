@@ -40,18 +40,36 @@ impl Machine {
         self.decoder().decode()
     }
 
-    pub fn read_operand<O>(&mut self, operand: O) -> Result<u8, MachineError>
+    pub fn read_operand<O>(&self, operand: O) -> Result<u8, MachineError>
     where
         O: ReadOperand,
     {
         operand.read(self)
     }
 
-    pub fn operand_addr<O>(&mut self, operand: O) -> Result<u16, MachineError>
+    pub fn operand_addr<O>(&self, operand: O) -> Result<u16, MachineError>
     where
         O: OperandAddr,
     {
         operand.address(self)
+    }
+
+    pub fn sp_address(&self) -> u16 {
+        u16::from_le_bytes([self.sp, 1])
+    }
+
+    pub fn push(&mut self, byte: u8) -> Result<(), MachineError> {
+        let address = self.sp_address();
+        self.memory.write(address, byte)?;
+        self.sp = self.sp.wrapping_sub(1);
+        Ok(())
+    }
+
+    pub fn pop(&mut self) -> Result<u8, MachineError> {
+        let address = self.sp_address();
+        let byte = self.memory.read(address)?;
+        self.sp = self.sp.wrapping_add(1);
+        Ok(byte)
     }
 }
 

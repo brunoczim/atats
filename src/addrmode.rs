@@ -70,7 +70,7 @@ macro_rules! decode_for_unit {
 macro_rules! impl_read_using_addr {
     ($ty:ty) => {
         impl ReadOperand for $ty {
-            fn read(&self, machine: &mut Machine) -> Result<u8, MachineError> {
+            fn read(&self, machine: &Machine) -> Result<u8, MachineError> {
                 let address = self.address(machine)?;
                 let byte = machine.memory.read(address)?;
                 Ok(byte)
@@ -80,27 +80,27 @@ macro_rules! impl_read_using_addr {
 }
 
 pub trait ReadOperand {
-    fn read(&self, machine: &mut Machine) -> Result<u8, MachineError>;
+    fn read(&self, machine: &Machine) -> Result<u8, MachineError>;
 }
 
 impl<'this, T> ReadOperand for &'this T
 where
     T: ReadOperand + ?Sized,
 {
-    fn read(&self, machine: &mut Machine) -> Result<u8, MachineError> {
+    fn read(&self, machine: &Machine) -> Result<u8, MachineError> {
         (**self).read(machine)
     }
 }
 
 pub trait OperandAddr {
-    fn address(&self, machine: &mut Machine) -> Result<u16, MachineError>;
+    fn address(&self, machine: &Machine) -> Result<u16, MachineError>;
 }
 
 impl<'this, T> OperandAddr for &'this T
 where
     T: OperandAddr + ?Sized,
 {
-    fn address(&self, machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         (**self).address(machine)
     }
 }
@@ -111,7 +111,7 @@ pub struct Absolute {
 }
 
 impl OperandAddr for Absolute {
-    fn address(&self, _machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, _machine: &Machine) -> Result<u16, MachineError> {
         Ok(self.address)
     }
 }
@@ -122,7 +122,7 @@ pub struct AbsoluteX {
 }
 
 impl OperandAddr for AbsoluteX {
-    fn address(&self, machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         Ok(self.address.wrapping_add(u16::from(machine.rx)))
     }
 }
@@ -133,7 +133,7 @@ pub struct AbsoluteY {
 }
 
 impl OperandAddr for AbsoluteY {
-    fn address(&self, machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         Ok(self.address.wrapping_add(u16::from(machine.ry)))
     }
 }
@@ -144,7 +144,7 @@ pub struct Immediate {
 }
 
 impl ReadOperand for Immediate {
-    fn read(&self, _machine: &mut Machine) -> Result<u8, MachineError> {
+    fn read(&self, _machine: &Machine) -> Result<u8, MachineError> {
         Ok(self.bits)
     }
 }
@@ -155,7 +155,7 @@ pub struct Indirect {
 }
 
 impl OperandAddr for Indirect {
-    fn address(&self, machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         let low = machine.memory.read(self.address)?;
         let high = machine.memory.read(self.address.wrapping_add(1))?;
         Ok(u16::from_le_bytes([low, high]))
@@ -168,7 +168,7 @@ pub struct XIndirect {
 }
 
 impl OperandAddr for XIndirect {
-    fn address(&self, machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         let address = self.address.wrapping_add(machine.rx);
         let low = machine.memory.read(u16::from(address))?;
         let high = machine.memory.read(u16::from(address.wrapping_add(1)))?;
@@ -182,7 +182,7 @@ pub struct IndirectY {
 }
 
 impl OperandAddr for IndirectY {
-    fn address(&self, machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         let low_address = u16::from(self.address);
         let low = machine.memory.read(low_address)?;
         let high_address = u16::from(self.address.wrapping_add(1));
@@ -198,7 +198,7 @@ pub struct Relative {
 }
 
 impl OperandAddr for Relative {
-    fn address(&self, machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         let offset = i16::from(self.address) as u16;
         Ok(machine.pc.wrapping_add(offset))
     }
@@ -210,7 +210,7 @@ pub struct Zeropage {
 }
 
 impl OperandAddr for Zeropage {
-    fn address(&self, _machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, _machine: &Machine) -> Result<u16, MachineError> {
         Ok(u16::from(self.address))
     }
 }
@@ -221,7 +221,7 @@ pub struct ZeropageX {
 }
 
 impl OperandAddr for ZeropageX {
-    fn address(&self, machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         Ok(u16::from(self.address.wrapping_add(machine.rx)))
     }
 }
@@ -232,7 +232,7 @@ pub struct ZeropageY {
 }
 
 impl OperandAddr for ZeropageY {
-    fn address(&self, machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         Ok(u16::from(self.address.wrapping_add(machine.ry)))
     }
 }
@@ -241,7 +241,7 @@ impl OperandAddr for ZeropageY {
 pub struct Accumulator;
 
 impl ReadOperand for Accumulator {
-    fn read(&self, machine: &mut Machine) -> Result<u8, MachineError> {
+    fn read(&self, machine: &Machine) -> Result<u8, MachineError> {
         Ok(machine.ra)
     }
 }
@@ -360,7 +360,7 @@ impl Operand {
 }
 
 impl ReadOperand for Operand {
-    fn read(&self, machine: &mut Machine) -> Result<u8, MachineError> {
+    fn read(&self, machine: &Machine) -> Result<u8, MachineError> {
         match self {
             Operand::Acc(operand) => operand.read(machine),
             Operand::Abs(operand) => operand.read(machine),
@@ -385,7 +385,7 @@ impl ReadOperand for Operand {
 }
 
 impl OperandAddr for Operand {
-    fn address(&self, machine: &mut Machine) -> Result<u16, MachineError> {
+    fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         match self {
             Operand::Abs(operand) => operand.address(machine),
             Operand::AbsX(operand) => operand.address(machine),

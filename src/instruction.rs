@@ -278,7 +278,7 @@ impl Instruction {
             },
 
             Mnemonic::Jmp => {
-                ();
+                machine.pc = machine.operand_addr(self.operand)?;
             },
 
             Mnemonic::Jsr => {
