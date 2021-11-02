@@ -134,35 +134,51 @@ impl Instruction {
             },
 
             Mnemonic::Cpx => {
-                ();
+                let operand = machine.read_operand(self.operand)?;
+                let (result, borrow) = machine.rx.overflowing_sub(operand);
+                machine.sr.update_from_byte(result);
+                machine.sr.set_c(!borrow);
             },
 
             Mnemonic::Cpy => {
-                ();
+                let operand = machine.read_operand(self.operand)?;
+                let (result, borrow) = machine.ry.overflowing_sub(operand);
+                machine.sr.update_from_byte(result);
+                machine.sr.set_c(!borrow);
             },
 
             Mnemonic::Inc => {
-                ();
+                let address = machine.operand_addr(self.operand)?;
+                let result = machine.memory.read(address)?.wrapping_add(1);
+                machine.sr.update_from_byte(result);
+                machine.memory.write(address, result)?;
             },
 
             Mnemonic::Dec => {
-                ();
+                let address = machine.operand_addr(self.operand)?;
+                let result = machine.memory.read(address)?.wrapping_sub(1);
+                machine.sr.update_from_byte(result);
+                machine.memory.write(address, result)?;
             },
 
             Mnemonic::Inx => {
-                ();
+                machine.rx = machine.rx.wrapping_add(1);
+                machine.sr.update_from_byte(machine.rx);
             },
 
             Mnemonic::Iny => {
-                ();
+                machine.ry = machine.ry.wrapping_add(1);
+                machine.sr.update_from_byte(machine.ry);
             },
 
             Mnemonic::Dex => {
-                ();
+                machine.rx = machine.rx.wrapping_sub(1);
+                machine.sr.update_from_byte(machine.rx);
             },
 
             Mnemonic::Dey => {
-                ();
+                machine.ry = machine.ry.wrapping_sub(1);
+                machine.sr.update_from_byte(machine.ry);
             },
 
             Mnemonic::Brk => {
