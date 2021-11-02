@@ -136,50 +136,79 @@ impl Instruction {
             },
 
             Mnemonic::Inx => {
+                self.operand.require_implied()?;
                 machine.rx = machine.rx.wrapping_add(1);
                 machine.sr.update_from_byte(machine.rx);
             },
 
             Mnemonic::Iny => {
+                self.operand.require_implied()?;
                 machine.ry = machine.ry.wrapping_add(1);
                 machine.sr.update_from_byte(machine.ry);
             },
 
             Mnemonic::Dex => {
+                self.operand.require_implied()?;
                 machine.rx = machine.rx.wrapping_sub(1);
                 machine.sr.update_from_byte(machine.rx);
             },
 
             Mnemonic::Dey => {
+                self.operand.require_implied()?;
                 machine.ry = machine.ry.wrapping_sub(1);
                 machine.sr.update_from_byte(machine.ry);
             },
 
             Mnemonic::Pha => {
+                self.operand.require_implied()?;
                 let acc = machine.ra;
-                machine.push(acc)?;
+                machine.push_byte(acc)?;
             },
 
             Mnemonic::Pla => {
-                machine.ra = machine.pop()?;
+                self.operand.require_implied()?;
+                machine.ra = machine.pop_byte()?;
             },
 
             Mnemonic::Php => {
+                self.operand.require_implied()?;
                 let sr = machine.sr.bits();
-                machine.push(sr)?;
+                machine.push_byte(sr)?;
             },
 
             Mnemonic::Plp => {
-                let sr = machine.pop()?;
+                self.operand.require_implied()?;
+                let sr = machine.pop_byte()?;
                 machine.sr = Status::from_bits(sr);
+                machine.sr.set_b(false);
             },
 
             Mnemonic::Brk => {
-                ();
+                self.operand.require_implied()?;
+
+                let ret_address = machine.pc.wrapping_add(2);
+                machine.push_address(ret_address)?;
+
+                let sr = machine.sr.bits();
+                machine.push_byte(sr)?;
+                machine.sr.set_b(true);
+
+                todo!()
             },
 
             Mnemonic::Rti => {
-                ();
+                self.operand.require_implied()?;
+
+                let sr = machine.pop_byte()?;
+                machine.sr = Status::from_bits(sr);
+                machine.sr.set_b(false);
+
+                machine.pc = machine.pop_address()?;
+            },
+
+            Mnemonic::Rts => {
+                self.operand.require_implied()?;
+                machine.pc = machine.pop_address()?.wrapping_add(1);
             },
 
             Mnemonic::Jmp => {
@@ -188,19 +217,8 @@ impl Instruction {
 
             Mnemonic::Jsr => {
                 let ret_address = machine.pc.wrapping_add(2);
-                for byte in ret_address.to_le_bytes() {
-                    machine.push(byte)?;
-                }
+                machine.push_address(ret_address)?;
                 machine.pc = machine.operand_addr(self.operand)?;
-            },
-
-            Mnemonic::Rts => {
-                let mut bytes = [0; 2];
-                for byte in &mut bytes {
-                    *byte = machine.pop()?;
-                }
-                machine.pc = u16::from_le_bytes(bytes);
-                machine.pc = machine.pc.wrapping_add(1);
             },
 
             Mnemonic::Bpl => {
@@ -260,34 +278,43 @@ impl Instruction {
             },
 
             Mnemonic::Sec => {
+                self.operand.require_implied()?;
                 machine.sr.set_c(true);
             },
 
             Mnemonic::Clc => {
+                self.operand.require_implied()?;
                 machine.sr.set_c(false);
             },
 
             Mnemonic::Cli => {
+                self.operand.require_implied()?;
                 machine.sr.set_i(false);
             },
 
             Mnemonic::Sei => {
+                self.operand.require_implied()?;
                 machine.sr.set_i(true);
             },
 
             Mnemonic::Clv => {
+                self.operand.require_implied()?;
                 machine.sr.set_v(false);
             },
 
             Mnemonic::Cld => {
+                self.operand.require_implied()?;
                 machine.sr.set_d(false);
             },
 
             Mnemonic::Sed => {
+                self.operand.require_implied()?;
                 machine.sr.set_d(true);
             },
 
-            Mnemonic::Nop => (),
+            Mnemonic::Nop => {
+                self.operand.require_implied()?;
+            },
 
             Mnemonic::Tya => {
                 self.operand.require_implied()?;

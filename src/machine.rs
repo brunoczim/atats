@@ -58,18 +58,33 @@ impl Machine {
         u16::from_le_bytes([self.sp, 1])
     }
 
-    pub fn push(&mut self, byte: u8) -> Result<(), MachineError> {
+    pub fn push_byte(&mut self, byte: u8) -> Result<(), MachineError> {
         let address = self.sp_address();
         self.memory.write(address, byte)?;
         self.sp = self.sp.wrapping_sub(1);
         Ok(())
     }
 
-    pub fn pop(&mut self) -> Result<u8, MachineError> {
+    pub fn pop_byte(&mut self) -> Result<u8, MachineError> {
         let address = self.sp_address();
         let byte = self.memory.read(address)?;
         self.sp = self.sp.wrapping_add(1);
         Ok(byte)
+    }
+
+    pub fn push_address(&mut self, address: u16) -> Result<(), MachineError> {
+        for byte in address.to_le_bytes() {
+            self.push_byte(byte)?;
+        }
+        Ok(())
+    }
+
+    pub fn pop_address(&mut self) -> Result<u16, MachineError> {
+        let mut bytes = [0; 2];
+        for byte in &mut bytes {
+            *byte = self.pop_byte()?;
+        }
+        Ok(u16::from_le_bytes(bytes))
     }
 }
 
