@@ -15,6 +15,7 @@ pub struct Machine {
     pub sp: u8,
     pub sr: Status,
     pub pc: u16,
+    pub fault: Option<MachineError>,
     private: (),
 }
 
@@ -28,6 +29,7 @@ impl Machine {
             sp: 0,
             sr: Status::zeroed(),
             pc: 0,
+            fault: None,
             private: (),
         }
     }
@@ -102,6 +104,72 @@ impl Machine {
         sr.set_unused(self.sr.get_unused());
         self.sr = sr;
         Ok(())
+    }
+
+    pub fn interrupt(
+        &mut self,
+        kind: InterruptKind,
+    ) -> Result<(), MachineError> {
+        if !kind.is_maskable() || !self.sr.get_i() {
+            let ret_address = self.pc.wrapping_add(2);
+            self.push_address(ret_address)?;
+            self.push_sr()?;
+            self.sr.set_i(true);
+
+            let address = match kind {
+                InterruptKind::Reset => {
+                    self.sr.set_b(false);
+                    Memory::RES_VECTOR
+                },
+                InterruptKind::NonMaskable => {
+                    self.sr.set_b(false);
+                    Memory::NMI_VECTOR
+                },
+                InterruptKind::Request => Memory::IRQ_VECTOR,
+            };
+
+            let low = self.memory.read(address)?;
+            let high = self.memory.read(address.wrapping_add(1))?;
+            self.pc = u16::from_le_bytes([low, high]);
+        }
+
+        Ok(())
+    }
+
+    pub fn try_step(&mut self) -> Result<(), MachineError> {
+        self.fetch_decode()?.execute(self)
+    }
+
+    pub fn step(&mut self) -> Result<(), MachineError> {
+        match self.try_step() {
+            Ok(()) => Ok(()),
+            Err(error) if self.fault.is_some() => Err(error),
+            Err(error) => {
+                self.fault = Some(error);
+                self.interrupt(InterruptKind::NonMaskable)?;
+                Ok(())
+            },
+        }
+    }
+
+    pub fn steps(&mut self, max_steps: u64) -> Result<(), MachineError> {
+        for _ in 0 .. max_steps {
+            self.step()?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum InterruptKind {
+    NonMaskable,
+    Request,
+    Reset,
+}
+
+impl InterruptKind {
+    pub fn is_maskable(self) -> bool {
+        matches!(self, InterruptKind::Request | InterruptKind::Reset)
     }
 }
 
