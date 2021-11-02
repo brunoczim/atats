@@ -140,6 +140,6 @@ impl Status {
 
     pub fn update_from_byte(&mut self, byte: u8) {
         self.set_z(byte == 0);
-        self.set_n((byte >> 7) != 0);
+        self.set_n((byte & 0x80) != 0);
     }
 }

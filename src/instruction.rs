@@ -296,19 +296,41 @@ impl Instruction {
             },
 
             Mnemonic::Asl => {
-                ();
+                let address = machine.operand_addr(self.operand)?;
+                let data = machine.memory.read(address)?;
+                let result = data << 1;
+                machine.sr.update_from_byte(result);
+                machine.sr.set_c((data & 0x80) != 0);
+                machine.memory.write(address, result)?;
             },
 
             Mnemonic::Rol => {
-                ();
+                let carry_in = u8::from(machine.sr.get_c());
+                let address = machine.operand_addr(self.operand)?;
+                let data = machine.memory.read(address)?;
+                let result = (data << 1) | carry_in;
+                machine.sr.update_from_byte(result);
+                machine.sr.set_c((data & 0x80) != 0);
+                machine.memory.write(address, result)?;
             },
 
             Mnemonic::Lsr => {
-                ();
+                let address = machine.operand_addr(self.operand)?;
+                let data = machine.memory.read(address)?;
+                let result = data >> 1;
+                machine.sr.update_from_byte(result);
+                machine.sr.set_c((data & 0x1) != 0);
+                machine.memory.write(address, result)?;
             },
 
             Mnemonic::Ror => {
-                ();
+                let carry_in = u8::from(machine.sr.get_c()) << 7;
+                let address = machine.operand_addr(self.operand)?;
+                let data = machine.memory.read(address)?;
+                let result = (data >> 1) | carry_in;
+                machine.sr.update_from_byte(result);
+                machine.sr.set_c((data & 0x1) != 0);
+                machine.memory.write(address, result)?;
             },
 
             Mnemonic::Sta => {
