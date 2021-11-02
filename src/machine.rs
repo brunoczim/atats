@@ -73,8 +73,8 @@ impl Machine {
     }
 
     pub fn push_address(&mut self, address: u16) -> Result<(), MachineError> {
-        for byte in address.to_le_bytes() {
-            self.push_byte(byte)?;
+        for byte in address.to_le_bytes().iter().rev() {
+            self.push_byte(*byte)?;
         }
         Ok(())
     }

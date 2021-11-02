@@ -156,6 +156,10 @@ pub struct Memory {
 }
 
 impl Memory {
+    pub const NMI_INTERRUPT: u16 = 0xfffa;
+    pub const RES_INTERRUPT: u16 = 0xfffc;
+    pub const IRQ_INTERRUPT: u16 = 0xfffe;
+
     pub fn new(ram: Ram, stack: Stack, rom: Rom) -> Self {
         Self { ram, stack, rom }
     }

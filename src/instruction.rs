@@ -10,7 +10,8 @@ use crate::{
     addrmode::Operand,
     binary::{Decode, Decoder, Encode, Encoder, NoConfig},
     error::MachineError,
-    machine::{Machine, Status},
+    machine::Machine,
+    memory::Memory,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -186,7 +187,9 @@ impl Instruction {
                 machine.push_address(ret_address)?;
                 machine.push_sr()?;
 
-                todo!()
+                let low = machine.memory.read(Memory::IRQ_INTERRUPT)?;
+                let high = machine.memory.read(Memory::IRQ_INTERRUPT + 1)?;
+                machine.pc = u16::from_le_bytes([low, high]);
             },
 
             Mnemonic::Rti => {
