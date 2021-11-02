@@ -86,6 +86,23 @@ impl Machine {
         }
         Ok(u16::from_le_bytes(bytes))
     }
+
+    pub fn push_sr(&mut self) -> Result<(), MachineError> {
+        let sr = self.sr.bits();
+        self.push_byte(sr)?;
+        self.sr.set_unused(true);
+        self.sr.set_b(true);
+        Ok(())
+    }
+
+    pub fn pop_sr(&mut self) -> Result<(), MachineError> {
+        let bits = self.pop_byte()?;
+        let mut sr = Status::from_bits(bits);
+        sr.set_b(self.sr.get_b());
+        sr.set_unused(self.sr.get_unused());
+        self.sr = sr;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -96,6 +113,7 @@ pub struct Status {
 impl Status {
     const NEGATIVE: u8 = 7;
     const OVERFLOW: u8 = 6;
+    const IGNORED: u8 = 5;
     const BREAK: u8 = 4;
     const DECIMAL: u8 = 3;
     const INTERRUPT: u8 = 2;
@@ -137,6 +155,14 @@ impl Status {
 
     pub fn set_v(&mut self, value: bool) {
         self.set(Self::OVERFLOW, value)
+    }
+
+    pub fn get_unused(&self) -> bool {
+        self.get(Self::IGNORED)
+    }
+
+    pub fn set_unused(&mut self, value: bool) {
+        self.set(Self::IGNORED, value)
     }
 
     pub fn get_b(&self) -> bool {

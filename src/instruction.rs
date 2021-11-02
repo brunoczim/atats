@@ -172,37 +172,26 @@ impl Instruction {
 
             Mnemonic::Php => {
                 self.operand.require_implied()?;
-                let sr = machine.sr.bits();
-                machine.push_byte(sr)?;
+                machine.push_sr()?;
             },
 
             Mnemonic::Plp => {
                 self.operand.require_implied()?;
-                let sr = machine.pop_byte()?;
-                machine.sr = Status::from_bits(sr);
-                machine.sr.set_b(false);
+                machine.pop_sr()?;
             },
 
             Mnemonic::Brk => {
                 self.operand.require_implied()?;
-
                 let ret_address = machine.pc.wrapping_add(2);
                 machine.push_address(ret_address)?;
-
-                let sr = machine.sr.bits();
-                machine.push_byte(sr)?;
-                machine.sr.set_b(true);
+                machine.push_sr()?;
 
                 todo!()
             },
 
             Mnemonic::Rti => {
                 self.operand.require_implied()?;
-
-                let sr = machine.pop_byte()?;
-                machine.sr = Status::from_bits(sr);
-                machine.sr.set_b(false);
-
+                machine.pop_sr()?;
                 machine.pc = machine.pop_address()?;
             },
 
