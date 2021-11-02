@@ -91,6 +91,14 @@ impl Status {
         Self::default()
     }
 
+    pub fn from_bits(bits: u8) -> Self {
+        Self { flags: bits }
+    }
+
+    pub fn bits(self) -> u8 {
+        self.flags
+    }
+
     fn get(&self, flag: u8) -> bool {
         self.flags & (1 << flag) != 0
     }

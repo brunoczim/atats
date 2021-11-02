@@ -10,7 +10,7 @@ use crate::{
     addrmode::Operand,
     binary::{Decode, Decoder, Encode, Encoder, NoConfig},
     error::MachineError,
-    machine::Machine,
+    machine::{Machine, Status},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -68,6 +68,16 @@ impl Instruction {
                 machine.sr.update_from_byte(machine.ra);
             },
 
+            Mnemonic::Ldx => {
+                machine.rx = machine.read_operand(self.operand)?;
+                machine.sr.update_from_byte(machine.rx);
+            },
+
+            Mnemonic::Ldy => {
+                machine.ry = machine.read_operand(self.operand)?;
+                machine.sr.update_from_byte(machine.ry);
+            },
+
             Mnemonic::Cmp => {
                 let operand = machine.read_operand(self.operand)?;
                 let (result, borrow) = machine.ra.overflowing_sub(operand);
@@ -95,42 +105,6 @@ impl Instruction {
                 machine.sr.update_from_byte(machine.ra);
                 machine.sr.set_c(!first_bout && !second_bout);
                 machine.sr.set_v(first_ovflow || second_ovflow);
-            },
-
-            Mnemonic::Bpl => {
-                ();
-            },
-
-            Mnemonic::Bmi => {
-                ();
-            },
-
-            Mnemonic::Bvc => {
-                ();
-            },
-
-            Mnemonic::Bvs => {
-                ();
-            },
-
-            Mnemonic::Bcc => {
-                ();
-            },
-
-            Mnemonic::Bcs => {
-                ();
-            },
-
-            Mnemonic::Bne => {
-                ();
-            },
-
-            Mnemonic::Beq => {
-                ();
-            },
-
-            Mnemonic::Bit => {
-                ();
             },
 
             Mnemonic::Cpx => {
@@ -181,11 +155,26 @@ impl Instruction {
                 machine.sr.update_from_byte(machine.ry);
             },
 
-            Mnemonic::Brk => {
-                ();
+            Mnemonic::Pha => {
+                let acc = machine.ra;
+                machine.push(acc)?;
+            },
+
+            Mnemonic::Pla => {
+                machine.ra = machine.pop()?;
             },
 
             Mnemonic::Php => {
+                let sr = machine.sr.bits();
+                machine.push(sr)?;
+            },
+
+            Mnemonic::Plp => {
+                let sr = machine.pop()?;
+                machine.sr = Status::from_bits(sr);
+            },
+
+            Mnemonic::Brk => {
                 ();
             },
 
@@ -193,37 +182,112 @@ impl Instruction {
                 ();
             },
 
+            Mnemonic::Jmp => {
+                machine.pc = machine.operand_addr(self.operand)?;
+            },
+
+            Mnemonic::Jsr => {
+                let ret_address = machine.pc.wrapping_add(2);
+                for byte in ret_address.to_le_bytes() {
+                    machine.push(byte)?;
+                }
+                machine.pc = machine.operand_addr(self.operand)?;
+            },
+
             Mnemonic::Rts => {
-                ();
+                let mut bytes = [0; 2];
+                for byte in &mut bytes {
+                    *byte = machine.pop()?;
+                }
+                machine.pc = u16::from_le_bytes(bytes);
+                machine.pc = machine.pc.wrapping_add(1);
             },
 
-            Mnemonic::Clc => {
-                ();
+            Mnemonic::Bpl => {
+                if !machine.sr.get_n() {
+                    machine.pc = machine.operand_addr(self.operand)?;
+                }
             },
 
-            Mnemonic::Plp => {
-                ();
+            Mnemonic::Bmi => {
+                if machine.sr.get_n() {
+                    machine.pc = machine.operand_addr(self.operand)?;
+                }
+            },
+
+            Mnemonic::Bvc => {
+                if !machine.sr.get_v() {
+                    machine.pc = machine.operand_addr(self.operand)?;
+                }
+            },
+
+            Mnemonic::Bvs => {
+                if machine.sr.get_v() {
+                    machine.pc = machine.operand_addr(self.operand)?;
+                }
+            },
+
+            Mnemonic::Bcc => {
+                if !machine.sr.get_c() {
+                    machine.pc = machine.operand_addr(self.operand)?;
+                }
+            },
+
+            Mnemonic::Bcs => {
+                if machine.sr.get_c() {
+                    machine.pc = machine.operand_addr(self.operand)?;
+                }
+            },
+
+            Mnemonic::Bne => {
+                if !machine.sr.get_z() {
+                    machine.pc = machine.operand_addr(self.operand)?;
+                }
+            },
+
+            Mnemonic::Beq => {
+                if machine.sr.get_z() {
+                    machine.pc = machine.operand_addr(self.operand)?;
+                }
+            },
+
+            Mnemonic::Bit => {
+                let operand = machine.read_operand(self.operand)?;
+                let result = machine.ra & operand;
+                machine.sr.set_n((operand & 0x80) != 0);
+                machine.sr.set_v((operand & 0x40) != 0);
+                machine.sr.set_z(result == 0);
             },
 
             Mnemonic::Sec => {
-                ();
+                machine.sr.set_c(true);
             },
 
-            Mnemonic::Pha => {
-                ();
+            Mnemonic::Clc => {
+                machine.sr.set_c(false);
             },
 
             Mnemonic::Cli => {
-                ();
-            },
-
-            Mnemonic::Pla => {
-                ();
+                machine.sr.set_i(false);
             },
 
             Mnemonic::Sei => {
-                ();
+                machine.sr.set_i(true);
             },
+
+            Mnemonic::Clv => {
+                machine.sr.set_v(false);
+            },
+
+            Mnemonic::Cld => {
+                machine.sr.set_d(false);
+            },
+
+            Mnemonic::Sed => {
+                machine.sr.set_d(true);
+            },
+
+            Mnemonic::Nop => (),
 
             Mnemonic::Tya => {
                 self.operand.require_implied()?;
@@ -259,40 +323,6 @@ impl Instruction {
                 self.operand.require_implied()?;
                 machine.rx = machine.sp;
                 machine.sr.update_from_byte(machine.rx);
-            },
-
-            Mnemonic::Clv => {
-                ();
-            },
-
-            Mnemonic::Cld => {
-                ();
-            },
-
-            Mnemonic::Sed => {
-                ();
-            },
-
-            Mnemonic::Nop => {
-                ();
-            },
-
-            Mnemonic::Jmp => {
-                machine.pc = machine.operand_addr(self.operand)?;
-            },
-
-            Mnemonic::Jsr => {
-                ();
-            },
-
-            Mnemonic::Ldx => {
-                machine.rx = machine.read_operand(self.operand)?;
-                machine.sr.update_from_byte(machine.rx);
-            },
-
-            Mnemonic::Ldy => {
-                machine.ry = machine.read_operand(self.operand)?;
-                machine.sr.update_from_byte(machine.ry);
             },
 
             Mnemonic::Asl => {
