@@ -89,8 +89,10 @@ pub enum Mnemonic {
     Sei,
     Tya,
     Tay,
+    Tax,
     Txa,
     Txs,
+    Tsx,
     Clv,
     Cld,
     Sed,
@@ -143,7 +145,9 @@ mnemonic_opcodes! {
         (4, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, 1) => Sta,
         (4, 1 | 3 | 5, 2) => Stx,
         (4, 2, 2) => Txa,
+        (5, 2, 2) => Tax,
         (4, 6, 2) => Txs,
+        (5, 6, 2) => Tsx,
         (5, 0 | 1 | 3 | 5 | 7, 0) => Ldy,
         (5, 2, 0) => Tay,
         (5, 4, 0) => Bcs,
@@ -204,7 +208,9 @@ impl Mnemonic {
             | Mnemonic::Pla
             | Mnemonic::Sei
             | Mnemonic::Txa
+            | Mnemonic::Tax
             | Mnemonic::Txs
+            | Mnemonic::Tsx
             | Mnemonic::Tya
             | Mnemonic::Tay
             | Mnemonic::Clv

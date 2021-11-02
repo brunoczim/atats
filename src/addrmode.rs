@@ -1,6 +1,7 @@
 use crate::{
     binary::{Decode, Decoder, Encode, Encoder, NoConfig},
-    error::{MachineError, OperandAddrError, OperandReadError},
+    error::{AddrModeError, MachineError, OperandAddrError, OperandReadError},
+    instruction,
     machine::Machine,
 };
 use std::fmt;
@@ -343,6 +344,17 @@ impl Operand {
             Operand::Zpg(_) => AddrMode::Zpg,
             Operand::ZpgX(_) => AddrMode::ZpgX,
             Operand::ZpgY(_) => AddrMode::ZpgY,
+        }
+    }
+
+    pub fn require_implied(self) -> Result<Implied, MachineError> {
+        match self {
+            Operand::Impl(mode) => Ok(mode),
+
+            _ => Err(MachineError::AddrMode(AddrModeError {
+                mode: self.addrmode(),
+                instr_type: instruction::Type::Imp,
+            })),
         }
     }
 }

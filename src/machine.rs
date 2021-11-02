@@ -1,6 +1,8 @@
 use crate::{
     addrmode::{OperandAddr, ReadOperand},
+    binary::{decode::MemoryDecoder, Decoder},
     error::MachineError,
+    instruction::Instruction,
     memory::Memory,
 };
 
@@ -28,6 +30,14 @@ impl Machine {
             pc: 0,
             private: (),
         }
+    }
+
+    pub fn decoder(&mut self) -> MemoryDecoder {
+        MemoryDecoder::new(&self.memory, &mut self.pc)
+    }
+
+    pub fn fetch_decode(&mut self) -> Result<Instruction, MachineError> {
+        self.decoder().decode()
     }
 
     pub fn read_operand<O>(&mut self, operand: O) -> Result<u8, MachineError>
@@ -126,5 +136,10 @@ impl Status {
 
     pub fn set_c(&mut self, value: bool) {
         self.set(Self::CARRY, value)
+    }
+
+    pub fn update_from_byte(&mut self, byte: u8) {
+        self.set_z(byte == 0);
+        self.set_n((byte >> 7) != 0);
     }
 }
