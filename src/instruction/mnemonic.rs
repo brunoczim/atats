@@ -2,6 +2,7 @@ use crate::{
     error::OpcodeError,
     instruction::{itype::Type, opcode},
 };
+use std::fmt;
 
 #[allow(unused_macros)]
 macro_rules! mnemonic_opcodes {
@@ -172,6 +173,67 @@ mnemonic_opcodes! {
 }
 
 impl Mnemonic {
+    pub fn rendered(self) -> &'static str {
+        match self {
+            Mnemonic::Ora => "ORA",
+            Mnemonic::And => "AND",
+            Mnemonic::Eor => "EOR",
+            Mnemonic::Adc => "ADC",
+            Mnemonic::Lda => "LDA",
+            Mnemonic::Cmp => "CMP",
+            Mnemonic::Sbc => "SBC",
+            Mnemonic::Bpl => "BPL",
+            Mnemonic::Bmi => "BMI",
+            Mnemonic::Bvc => "BVC",
+            Mnemonic::Bvs => "BVS",
+            Mnemonic::Bcc => "BCC",
+            Mnemonic::Bcs => "BCS",
+            Mnemonic::Bne => "BNE",
+            Mnemonic::Beq => "BEQ",
+            Mnemonic::Bit => "BIT",
+            Mnemonic::Cpx => "CPX",
+            Mnemonic::Cpy => "CPY",
+            Mnemonic::Inc => "INC",
+            Mnemonic::Dec => "DEC",
+            Mnemonic::Inx => "INX",
+            Mnemonic::Iny => "INY",
+            Mnemonic::Dex => "DEX",
+            Mnemonic::Dey => "DEY",
+            Mnemonic::Brk => "BRK",
+            Mnemonic::Php => "PHP",
+            Mnemonic::Rti => "RTI",
+            Mnemonic::Rts => "RTS",
+            Mnemonic::Plp => "PLP",
+            Mnemonic::Pha => "PHA",
+            Mnemonic::Pla => "PLA",
+            Mnemonic::Sec => "SEC",
+            Mnemonic::Clc => "CLC",
+            Mnemonic::Sei => "SEI",
+            Mnemonic::Cli => "CLI",
+            Mnemonic::Sed => "SED",
+            Mnemonic::Cld => "CLD",
+            Mnemonic::Clv => "CLV",
+            Mnemonic::Tya => "TYA",
+            Mnemonic::Tay => "TAY",
+            Mnemonic::Tax => "TAX",
+            Mnemonic::Txa => "TXA",
+            Mnemonic::Txs => "TXS",
+            Mnemonic::Tsx => "TSX",
+            Mnemonic::Nop => "NOP",
+            Mnemonic::Jmp => "JMP",
+            Mnemonic::Jsr => "JSR",
+            Mnemonic::Ldx => "LDX",
+            Mnemonic::Ldy => "LDY",
+            Mnemonic::Asl => "ASL",
+            Mnemonic::Rol => "ROL",
+            Mnemonic::Lsr => "LSR",
+            Mnemonic::Ror => "ROR",
+            Mnemonic::Sta => "STA",
+            Mnemonic::Stx => "STX",
+            Mnemonic::Sty => "STY",
+        }
+    }
+
     pub fn instr_type(self) -> Type {
         match self {
             Mnemonic::Ora
@@ -228,5 +290,11 @@ impl Mnemonic {
             Mnemonic::Stx => Type::Stx,
             Mnemonic::Sty => Type::Sty,
         }
+    }
+}
+
+impl fmt::Display for Mnemonic {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "{}", self.rendered())
     }
 }

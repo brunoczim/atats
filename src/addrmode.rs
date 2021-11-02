@@ -116,6 +116,12 @@ impl OperandAddr for Absolute {
     }
 }
 
+impl fmt::Display for Absolute {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "{}", self.address)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct AbsoluteX {
     pub address: u16,
@@ -124,6 +130,12 @@ pub struct AbsoluteX {
 impl OperandAddr for AbsoluteX {
     fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         Ok(self.address.wrapping_add(u16::from(machine.rx)))
+    }
+}
+
+impl fmt::Display for AbsoluteX {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "{}, X", self.address)
     }
 }
 
@@ -138,6 +150,12 @@ impl OperandAddr for AbsoluteY {
     }
 }
 
+impl fmt::Display for AbsoluteY {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "{}, Y", self.address)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Immediate {
     pub bits: u8,
@@ -146,6 +164,12 @@ pub struct Immediate {
 impl ReadOperand for Immediate {
     fn read(&self, _machine: &Machine) -> Result<u8, MachineError> {
         Ok(self.bits)
+    }
+}
+
+impl fmt::Display for Immediate {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "#{}", self.bits)
     }
 }
 
@@ -162,6 +186,12 @@ impl OperandAddr for Indirect {
     }
 }
 
+impl fmt::Display for Indirect {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "({})", self.address)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct XIndirect {
     pub address: u8,
@@ -173,6 +203,12 @@ impl OperandAddr for XIndirect {
         let low = machine.memory.read(u16::from(address))?;
         let high = machine.memory.read(u16::from(address.wrapping_add(1)))?;
         Ok(u16::from_le_bytes([low, high]))
+    }
+}
+
+impl fmt::Display for XIndirect {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "({}, X)", self.address)
     }
 }
 
@@ -192,6 +228,12 @@ impl OperandAddr for IndirectY {
     }
 }
 
+impl fmt::Display for IndirectY {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "({}), Y", self.address)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Relative {
     pub address: i8,
@@ -201,6 +243,12 @@ impl OperandAddr for Relative {
     fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         let offset = i16::from(self.address) as u16;
         Ok(machine.pc.wrapping_add(offset))
+    }
+}
+
+impl fmt::Display for Relative {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "rel {}", self.address)
     }
 }
 
@@ -215,6 +263,12 @@ impl OperandAddr for Zeropage {
     }
 }
 
+impl fmt::Display for Relative {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "0 {}", self.address)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct ZeropageX {
     pub address: u8,
@@ -223,6 +277,12 @@ pub struct ZeropageX {
 impl OperandAddr for ZeropageX {
     fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         Ok(u16::from(self.address.wrapping_add(machine.rx)))
+    }
+}
+
+impl fmt::Display for ZeropageX {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "0 {}, X", self.address)
     }
 }
 
@@ -237,6 +297,12 @@ impl OperandAddr for ZeropageY {
     }
 }
 
+impl fmt::Display for ZeropageY {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "0 {}, Y", self.address)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Accumulator;
 
@@ -246,8 +312,20 @@ impl ReadOperand for Accumulator {
     }
 }
 
+impl fmt::Display for Accumulator {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "A")
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Implied;
+
+impl fmt::Display for Implied {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "")
+    }
+}
 
 impl_read_using_addr! { Absolute }
 impl_read_using_addr! { AbsoluteX }
@@ -355,6 +433,26 @@ impl Operand {
                 mode: self.addrmode(),
                 instr_type: instruction::Type::Imp,
             })),
+        }
+    }
+}
+
+impl fmt::Display for Operand {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Operand::Acc(operand) => write!(fmtr, "{}", operand),
+            Operand::Abs(operand) => write!(fmtr, "{}", operand),
+            Operand::AbsX(operand) => write!(fmtr, "{}", operand),
+            Operand::AbsY(operand) => write!(fmtr, "{}", operand),
+            Operand::Imm(operand) => write!(fmtr, "{}", operand),
+            Operand::Ind(operand) => write!(fmtr, "{}", operand),
+            Operand::XInd(operand) => write!(fmtr, "{}", operand),
+            Operand::IndY(operand) => write!(fmtr, "{}", operand),
+            Operand::Rel(operand) => write!(fmtr, "{}", operand),
+            Operand::Zpg(operand) => write!(fmtr, "{}", operand),
+            Operand::ZpgX(operand) => write!(fmtr, "{}", operand),
+            Operand::ZpgY(operand) => write!(fmtr, "{}", operand),
+            Operand::Impl(operand) => write!(fmtr, "{}", operand),
         }
     }
 }
