@@ -12,6 +12,7 @@ use crate::{
     error::MachineError,
     machine::{InterruptKind, Machine},
 };
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Instruction {
@@ -392,6 +393,12 @@ impl Instruction {
         }
 
         Ok(())
+    }
+}
+
+impl fmt::Display for Instruction {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmtr, "{} {}", self.mnemonic, self.operand)
     }
 }
 
