@@ -7,7 +7,8 @@ pub use mnemonic::Mnemonic;
 pub use opcode::Opcode;
 
 use crate::{
-    addrmode::Operand,
+    addrmode::{Operand, OperandSize},
+    assembly::{self, disassemble},
     binary::{Decode, Decoder, Encode, Encoder, NoConfig},
     error::MachineError,
     machine::{InterruptKind, Machine},
@@ -23,6 +24,10 @@ pub struct Instruction {
 impl Instruction {
     pub fn opcode(self) -> Opcode {
         Opcode { mnemonic: self.mnemonic, addrmode: self.operand.addrmode() }
+    }
+
+    pub fn size(self) -> usize {
+        1 + self.operand.size()
     }
 
     pub fn execute(self, machine: &mut Machine) -> Result<(), MachineError> {
@@ -392,6 +397,20 @@ impl Instruction {
             },
         }
 
+        Ok(())
+    }
+}
+
+impl disassemble::Render for Instruction {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        write!(formatter, "{}", ctx.renderer(self.mnemonic))?;
+        if !self.operand.renders_empty(ctx) {
+            write!(formatter, " {}", ctx.renderer(self.operand))?;
+        }
         Ok(())
     }
 }

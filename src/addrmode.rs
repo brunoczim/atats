@@ -1,4 +1,5 @@
 use crate::{
+    assembly::{self, disassemble},
     binary::{Decode, Decoder, Encode, Encoder, NoConfig},
     error::{AddrModeError, MachineError, OperandAddrError, OperandReadError},
     instruction,
@@ -79,6 +80,36 @@ macro_rules! impl_read_using_addr {
     };
 }
 
+macro_rules! impl_display {
+    { $ty:ty } => {
+        impl fmt::Display for $ty {
+            fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+                let config = default_dis_config();
+                write!(
+                    fmtr,
+                    "{}",
+                    disassemble::Renderer::with_config(self, config)
+                )
+            }
+        }
+    };
+}
+
+pub fn default_dis_config() -> disassemble::Config {
+    disassemble::Config {
+        syntax: assembly::Syntax::Detailed,
+        ..Default::default()
+    }
+}
+
+pub trait OperandSize {
+    fn size(&self) -> usize;
+
+    fn renders_empty(&self, _ctx: disassemble::Context) -> bool {
+        false
+    }
+}
+
 pub trait ReadOperand {
     fn read(&self, machine: &Machine) -> Result<u8, MachineError>;
 }
@@ -110,15 +141,25 @@ pub struct Absolute {
     pub address: u16,
 }
 
+impl OperandSize for Absolute {
+    fn size(&self) -> usize {
+        2
+    }
+}
+
 impl OperandAddr for Absolute {
     fn address(&self, _machine: &Machine) -> Result<u16, MachineError> {
         Ok(self.address)
     }
 }
 
-impl fmt::Display for Absolute {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "{}", self.address)
+impl disassemble::Render for Absolute {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        write!(formatter, "{}", ctx.renderer(self.address))
     }
 }
 
@@ -127,15 +168,32 @@ pub struct AbsoluteX {
     pub address: u16,
 }
 
+impl OperandSize for AbsoluteX {
+    fn size(&self) -> usize {
+        2
+    }
+}
+
 impl OperandAddr for AbsoluteX {
     fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         Ok(self.address.wrapping_add(u16::from(machine.rx)))
     }
 }
 
-impl fmt::Display for AbsoluteX {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "{}, X", self.address)
+impl disassemble::Render for AbsoluteX {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match ctx.config().keyword_case {
+            disassemble::KeywordCase::Lower => {
+                write!(formatter, "{}, x", ctx.renderer(self.address))
+            },
+            disassemble::KeywordCase::Upper => {
+                write!(formatter, "{}, X", ctx.renderer(self.address))
+            },
+        }
     }
 }
 
@@ -144,15 +202,32 @@ pub struct AbsoluteY {
     pub address: u16,
 }
 
+impl OperandSize for AbsoluteY {
+    fn size(&self) -> usize {
+        2
+    }
+}
+
 impl OperandAddr for AbsoluteY {
     fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         Ok(self.address.wrapping_add(u16::from(machine.ry)))
     }
 }
 
-impl fmt::Display for AbsoluteY {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "{}, Y", self.address)
+impl disassemble::Render for AbsoluteY {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match ctx.config().keyword_case {
+            disassemble::KeywordCase::Lower => {
+                write!(formatter, "{}, y", ctx.renderer(self.address))
+            },
+            disassemble::KeywordCase::Upper => {
+                write!(formatter, "{}, Y", ctx.renderer(self.address))
+            },
+        }
     }
 }
 
@@ -161,21 +236,37 @@ pub struct Immediate {
     pub bits: u8,
 }
 
+impl OperandSize for Immediate {
+    fn size(&self) -> usize {
+        1
+    }
+}
+
 impl ReadOperand for Immediate {
     fn read(&self, _machine: &Machine) -> Result<u8, MachineError> {
         Ok(self.bits)
     }
 }
 
-impl fmt::Display for Immediate {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "#{}", self.bits)
+impl disassemble::Render for Immediate {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        write!(formatter, "#{}", ctx.renderer(self.bits))
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Indirect {
     pub address: u16,
+}
+
+impl OperandSize for Indirect {
+    fn size(&self) -> usize {
+        2
+    }
 }
 
 impl OperandAddr for Indirect {
@@ -186,15 +277,25 @@ impl OperandAddr for Indirect {
     }
 }
 
-impl fmt::Display for Indirect {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "({})", self.address)
+impl disassemble::Render for Indirect {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        write!(formatter, "({})", ctx.renderer(self.address))
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct XIndirect {
     pub address: u8,
+}
+
+impl OperandSize for XIndirect {
+    fn size(&self) -> usize {
+        1
+    }
 }
 
 impl OperandAddr for XIndirect {
@@ -206,15 +307,32 @@ impl OperandAddr for XIndirect {
     }
 }
 
-impl fmt::Display for XIndirect {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "({}, X)", self.address)
+impl disassemble::Render for XIndirect {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match ctx.config().keyword_case {
+            disassemble::KeywordCase::Lower => {
+                write!(formatter, "({}, x)", ctx.renderer(self.address))
+            },
+            disassemble::KeywordCase::Upper => {
+                write!(formatter, "({}, X)", ctx.renderer(self.address))
+            },
+        }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct IndirectY {
     pub address: u8,
+}
+
+impl OperandSize for IndirectY {
+    fn size(&self) -> usize {
+        1
+    }
 }
 
 impl OperandAddr for IndirectY {
@@ -228,15 +346,32 @@ impl OperandAddr for IndirectY {
     }
 }
 
-impl fmt::Display for IndirectY {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "({}), Y", self.address)
+impl disassemble::Render for IndirectY {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match ctx.config().keyword_case {
+            disassemble::KeywordCase::Lower => {
+                write!(formatter, "({}), y", ctx.renderer(self.address))
+            },
+            disassemble::KeywordCase::Upper => {
+                write!(formatter, "({}), Y", ctx.renderer(self.address))
+            },
+        }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Relative {
     pub address: i8,
+}
+
+impl OperandSize for Relative {
+    fn size(&self) -> usize {
+        1
+    }
 }
 
 impl OperandAddr for Relative {
@@ -246,9 +381,21 @@ impl OperandAddr for Relative {
     }
 }
 
-impl fmt::Display for Relative {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "rel {}", self.address)
+impl disassemble::Render for Relative {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match (ctx.config().syntax, ctx.config().keyword_case) {
+            (assembly::Syntax::Detailed, disassemble::KeywordCase::Lower) => {
+                write!(formatter, "rel {}", ctx.renderer(self.address))
+            },
+            (assembly::Syntax::Detailed, disassemble::KeywordCase::Upper) => {
+                write!(formatter, "REL {}", ctx.renderer(self.address))
+            },
+            _ => write!(formatter, "{}", ctx.renderer(self.address)),
+        }
     }
 }
 
@@ -257,15 +404,30 @@ pub struct Zeropage {
     pub address: u8,
 }
 
+impl OperandSize for Zeropage {
+    fn size(&self) -> usize {
+        1
+    }
+}
+
 impl OperandAddr for Zeropage {
     fn address(&self, _machine: &Machine) -> Result<u16, MachineError> {
         Ok(u16::from(self.address))
     }
 }
 
-impl fmt::Display for Relative {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "0 {}", self.address)
+impl disassemble::Render for Zeropage {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match ctx.config().syntax {
+            assembly::Syntax::Detailed => {
+                write!(formatter, "0, {}", ctx.renderer(self.address))
+            },
+            _ => write!(formatter, "{}", ctx.renderer(self.address)),
+        }
     }
 }
 
@@ -274,15 +436,39 @@ pub struct ZeropageX {
     pub address: u8,
 }
 
+impl OperandSize for ZeropageX {
+    fn size(&self) -> usize {
+        1
+    }
+}
+
 impl OperandAddr for ZeropageX {
     fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         Ok(u16::from(self.address.wrapping_add(machine.rx)))
     }
 }
 
-impl fmt::Display for ZeropageX {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "0 {}, X", self.address)
+impl disassemble::Render for ZeropageX {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match (ctx.config().syntax, ctx.config().keyword_case) {
+            (assembly::Syntax::Detailed, disassemble::KeywordCase::Lower) => {
+                write!(formatter, "0, {}, x", ctx.renderer(self.address))
+            },
+            (assembly::Syntax::Detailed, disassemble::KeywordCase::Upper) => {
+                write!(formatter, "0, {}, X", ctx.renderer(self.address))
+            },
+
+            (_, disassemble::KeywordCase::Lower) => {
+                write!(formatter, "{}, x", ctx.renderer(self.address))
+            },
+            (_, disassemble::KeywordCase::Upper) => {
+                write!(formatter, "{}, X", ctx.renderer(self.address))
+            },
+        }
     }
 }
 
@@ -291,20 +477,50 @@ pub struct ZeropageY {
     pub address: u8,
 }
 
+impl OperandSize for ZeropageY {
+    fn size(&self) -> usize {
+        1
+    }
+}
+
 impl OperandAddr for ZeropageY {
     fn address(&self, machine: &Machine) -> Result<u16, MachineError> {
         Ok(u16::from(self.address.wrapping_add(machine.ry)))
     }
 }
 
-impl fmt::Display for ZeropageY {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "0 {}, Y", self.address)
+impl disassemble::Render for ZeropageY {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match (ctx.config().syntax, ctx.config().keyword_case) {
+            (assembly::Syntax::Detailed, disassemble::KeywordCase::Lower) => {
+                write!(formatter, "0, {}, y", ctx.renderer(self.address))
+            },
+            (assembly::Syntax::Detailed, disassemble::KeywordCase::Upper) => {
+                write!(formatter, "0, {}, Y", ctx.renderer(self.address))
+            },
+
+            (_, disassemble::KeywordCase::Lower) => {
+                write!(formatter, "{}, y", ctx.renderer(self.address))
+            },
+            (_, disassemble::KeywordCase::Upper) => {
+                write!(formatter, "{}, Y", ctx.renderer(self.address))
+            },
+        }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Accumulator;
+
+impl OperandSize for Accumulator {
+    fn size(&self) -> usize {
+        0
+    }
+}
 
 impl ReadOperand for Accumulator {
     fn read(&self, machine: &Machine) -> Result<u8, MachineError> {
@@ -312,18 +528,50 @@ impl ReadOperand for Accumulator {
     }
 }
 
-impl fmt::Display for Accumulator {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "A")
+impl disassemble::Render for Accumulator {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match ctx.config().keyword_case {
+            disassemble::KeywordCase::Lower => write!(formatter, "a"),
+            disassemble::KeywordCase::Upper => write!(formatter, "A"),
+        }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Implied;
 
-impl fmt::Display for Implied {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "")
+impl OperandSize for Implied {
+    fn size(&self) -> usize {
+        0
+    }
+
+    fn renders_empty(&self, ctx: disassemble::Context) -> bool {
+        match ctx.config().syntax {
+            assembly::Syntax::Detailed => false,
+            _ => true,
+        }
+    }
+}
+
+impl disassemble::Render for Implied {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match (ctx.config().syntax, ctx.config().keyword_case) {
+            (assembly::Syntax::Detailed, disassemble::KeywordCase::Lower) => {
+                write!(formatter, "IMPL")
+            },
+            (assembly::Syntax::Detailed, disassemble::KeywordCase::Upper) => {
+                write!(formatter, "impl")
+            },
+            _ => Ok(()),
+        }
     }
 }
 
@@ -337,6 +585,21 @@ impl_read_using_addr! { Relative }
 impl_read_using_addr! { Zeropage }
 impl_read_using_addr! { ZeropageX }
 impl_read_using_addr! { ZeropageY }
+
+impl_display! { Absolute }
+impl_display! { AbsoluteX }
+impl_display! { AbsoluteY }
+impl_display! { Immediate }
+impl_display! { Indirect }
+impl_display! { XIndirect }
+impl_display! { IndirectY }
+impl_display! { Relative }
+impl_display! { Zeropage }
+impl_display! { ZeropageX }
+impl_display! { ZeropageY }
+impl_display! { Accumulator }
+impl_display! { Implied }
+impl_display! { Operand }
 
 decode_for_wrapper! { Absolute { address: u8 } }
 decode_for_wrapper! { AbsoluteX { address: u8 } }
@@ -437,26 +700,6 @@ impl Operand {
     }
 }
 
-impl fmt::Display for Operand {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Operand::Acc(operand) => write!(fmtr, "{}", operand),
-            Operand::Abs(operand) => write!(fmtr, "{}", operand),
-            Operand::AbsX(operand) => write!(fmtr, "{}", operand),
-            Operand::AbsY(operand) => write!(fmtr, "{}", operand),
-            Operand::Imm(operand) => write!(fmtr, "{}", operand),
-            Operand::Ind(operand) => write!(fmtr, "{}", operand),
-            Operand::XInd(operand) => write!(fmtr, "{}", operand),
-            Operand::IndY(operand) => write!(fmtr, "{}", operand),
-            Operand::Rel(operand) => write!(fmtr, "{}", operand),
-            Operand::Zpg(operand) => write!(fmtr, "{}", operand),
-            Operand::ZpgX(operand) => write!(fmtr, "{}", operand),
-            Operand::ZpgY(operand) => write!(fmtr, "{}", operand),
-            Operand::Impl(operand) => write!(fmtr, "{}", operand),
-        }
-    }
-}
-
 impl ReadOperand for Operand {
     fn read(&self, machine: &Machine) -> Result<u8, MachineError> {
         match self {
@@ -500,6 +743,94 @@ impl OperandAddr for Operand {
                 Err(MachineError::OperandAddr(OperandAddrError {
                     operand: *self,
                 }))
+            },
+        }
+    }
+}
+
+impl OperandSize for Operand {
+    fn size(&self) -> usize {
+        match self {
+            Operand::Acc(operand) => operand.size(),
+            Operand::Abs(operand) => operand.size(),
+            Operand::AbsX(operand) => operand.size(),
+            Operand::AbsY(operand) => operand.size(),
+            Operand::Imm(operand) => operand.size(),
+            Operand::Ind(operand) => operand.size(),
+            Operand::XInd(operand) => operand.size(),
+            Operand::IndY(operand) => operand.size(),
+            Operand::Rel(operand) => operand.size(),
+            Operand::Zpg(operand) => operand.size(),
+            Operand::ZpgX(operand) => operand.size(),
+            Operand::ZpgY(operand) => operand.size(),
+            Operand::Impl(operand) => operand.size(),
+        }
+    }
+
+    fn renders_empty(&self, ctx: disassemble::Context) -> bool {
+        match self {
+            Operand::Acc(operand) => operand.renders_empty(ctx),
+            Operand::Abs(operand) => operand.renders_empty(ctx),
+            Operand::AbsX(operand) => operand.renders_empty(ctx),
+            Operand::AbsY(operand) => operand.renders_empty(ctx),
+            Operand::Imm(operand) => operand.renders_empty(ctx),
+            Operand::Ind(operand) => operand.renders_empty(ctx),
+            Operand::XInd(operand) => operand.renders_empty(ctx),
+            Operand::IndY(operand) => operand.renders_empty(ctx),
+            Operand::Rel(operand) => operand.renders_empty(ctx),
+            Operand::Zpg(operand) => operand.renders_empty(ctx),
+            Operand::ZpgX(operand) => operand.renders_empty(ctx),
+            Operand::ZpgY(operand) => operand.renders_empty(ctx),
+            Operand::Impl(operand) => operand.renders_empty(ctx),
+        }
+    }
+}
+
+impl disassemble::Render for Operand {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match self {
+            Operand::Acc(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::Abs(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::AbsX(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::AbsY(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::Imm(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::Ind(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::XInd(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::IndY(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::Rel(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::Zpg(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::ZpgX(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::ZpgY(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
+            },
+            Operand::Impl(operand) => {
+                disassemble::Render::render(operand, ctx, formatter)
             },
         }
     }

@@ -1,4 +1,5 @@
 use crate::{
+    assembly::disassemble,
     error::OpcodeError,
     instruction::{itype::Type, opcode},
 };
@@ -296,5 +297,28 @@ impl Mnemonic {
 impl fmt::Display for Mnemonic {
     fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
         write!(fmtr, "{}", self.rendered())
+    }
+}
+
+impl disassemble::Render for Mnemonic {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match ctx.config().keyword_case {
+            disassemble::KeywordCase::Upper => {
+                write!(formatter, "{}", self.rendered())
+            },
+
+            disassemble::KeywordCase::Lower => {
+                for character in self.rendered().chars() {
+                    for lower_char in character.to_lowercase() {
+                        write!(formatter, "{}", lower_char)?
+                    }
+                }
+                Ok(())
+            },
+        }
     }
 }
