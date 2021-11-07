@@ -4,7 +4,7 @@ pub mod encode;
 pub use decode::{Decode, Decoder, NoConfig};
 pub use encode::{Encode, Encoder};
 
-macro_rules! impl_for_int {
+macro_rules! binary_for_int {
     { $ty:ty } => {
         impl Decode for $ty {
             type Config = NoConfig;
@@ -37,13 +37,13 @@ macro_rules! impl_for_int {
     };
 }
 
-impl_for_int! { u8 }
-impl_for_int! { i8 }
-impl_for_int! { u16 }
-impl_for_int! { i16 }
-impl_for_int! { u32 }
-impl_for_int! { i32 }
-impl_for_int! { u64 }
-impl_for_int! { i64 }
-impl_for_int! { u128 }
-impl_for_int! { i128 }
+binary_for_int! { u8 }
+binary_for_int! { i8 }
+binary_for_int! { u16 }
+binary_for_int! { i16 }
+binary_for_int! { u32 }
+binary_for_int! { i32 }
+binary_for_int! { u64 }
+binary_for_int! { i64 }
+binary_for_int! { u128 }
+binary_for_int! { i128 }

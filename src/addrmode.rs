@@ -1,106 +1,11 @@
 use crate::{
     assembly::{self, disassemble},
-    binary::{Decode, Decoder, Encode, Encoder, NoConfig},
+    binary::{Decode, Decoder, Encode, Encoder},
     error::{AddrModeError, MachineError, OperandAddrError, OperandReadError},
     instruction,
     machine::Machine,
 };
 use std::fmt;
-
-macro_rules! decode_for_wrapper {
-    { $outer:ty { $field:ident: $field_ty:ty } } => {
-        impl Decode for $outer {
-            type Config = <$field_ty as Decode>::Config;
-
-            fn decode<D>(
-                config: &Self::Config,
-                decoder: &mut D,
-            ) -> Result<Self, D::Error>
-            where
-                D: Decoder + ?Sized,
-            {
-                let $field = decoder.decode_with(config)?;
-                Ok(Self { $field })
-            }
-        }
-
-        impl Encode for $outer {
-            fn encode<E>(
-                &self,
-                encoder: &mut E,
-            ) -> Result<(), E::Error>
-            where
-                E: Encoder + ?Sized
-            {
-                encoder.encode(&self.$field)
-            }
-        }
-    };
-}
-
-macro_rules! decode_for_unit {
-    { $outer:ty } => {
-        impl Decode for $outer {
-            type Config = NoConfig;
-
-            fn decode<D>(
-                _config: &Self::Config,
-                _decoder: &mut D,
-            ) -> Result<Self, D::Error>
-            where
-                D: Decoder + ?Sized,
-            {
-                Ok(Self)
-            }
-        }
-
-        impl Encode for $outer {
-            fn encode<E>(
-                &self,
-                _encoder: &mut E,
-            ) -> Result<(), E::Error>
-            where
-                E: Encoder + ?Sized
-            {
-                Ok(())
-            }
-        }
-    };
-}
-
-macro_rules! impl_read_using_addr {
-    ($ty:ty) => {
-        impl ReadOperand for $ty {
-            fn read(&self, machine: &Machine) -> Result<u8, MachineError> {
-                let address = self.address(machine)?;
-                let byte = machine.memory.read(address)?;
-                Ok(byte)
-            }
-        }
-    };
-}
-
-macro_rules! impl_display {
-    { $ty:ty } => {
-        impl fmt::Display for $ty {
-            fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-                let config = default_dis_config();
-                write!(
-                    fmtr,
-                    "{}",
-                    disassemble::Renderer::with_config(self, config)
-                )
-            }
-        }
-    };
-}
-
-pub fn default_dis_config() -> disassemble::Config {
-    disassemble::Config {
-        syntax: assembly::Syntax::Detailed,
-        ..Default::default()
-    }
-}
 
 pub trait OperandSize {
     fn size(&self) -> usize;
@@ -575,31 +480,31 @@ impl disassemble::Render for Implied {
     }
 }
 
-impl_read_using_addr! { Absolute }
-impl_read_using_addr! { AbsoluteX }
-impl_read_using_addr! { AbsoluteY }
-impl_read_using_addr! { Indirect }
-impl_read_using_addr! { XIndirect }
-impl_read_using_addr! { IndirectY }
-impl_read_using_addr! { Relative }
-impl_read_using_addr! { Zeropage }
-impl_read_using_addr! { ZeropageX }
-impl_read_using_addr! { ZeropageY }
+read_using_addr! { Absolute }
+read_using_addr! { AbsoluteX }
+read_using_addr! { AbsoluteY }
+read_using_addr! { Indirect }
+read_using_addr! { XIndirect }
+read_using_addr! { IndirectY }
+read_using_addr! { Relative }
+read_using_addr! { Zeropage }
+read_using_addr! { ZeropageX }
+read_using_addr! { ZeropageY }
 
-impl_display! { Absolute }
-impl_display! { AbsoluteX }
-impl_display! { AbsoluteY }
-impl_display! { Immediate }
-impl_display! { Indirect }
-impl_display! { XIndirect }
-impl_display! { IndirectY }
-impl_display! { Relative }
-impl_display! { Zeropage }
-impl_display! { ZeropageX }
-impl_display! { ZeropageY }
-impl_display! { Accumulator }
-impl_display! { Implied }
-impl_display! { Operand }
+display_using_render! { Absolute }
+display_using_render! { AbsoluteX }
+display_using_render! { AbsoluteY }
+display_using_render! { Immediate }
+display_using_render! { Indirect }
+display_using_render! { XIndirect }
+display_using_render! { IndirectY }
+display_using_render! { Relative }
+display_using_render! { Zeropage }
+display_using_render! { ZeropageX }
+display_using_render! { ZeropageY }
+display_using_render! { Accumulator }
+display_using_render! { Implied }
+display_using_render! { Operand }
 
 decode_for_wrapper! { Absolute { address: u8 } }
 decode_for_wrapper! { AbsoluteX { address: u8 } }

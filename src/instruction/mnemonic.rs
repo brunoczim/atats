@@ -5,7 +5,6 @@ use crate::{
 };
 use std::fmt;
 
-#[allow(unused_macros)]
 macro_rules! mnemonic_opcodes {
     (
         match (bits_a, bits_b, bits_c) {
@@ -294,11 +293,7 @@ impl Mnemonic {
     }
 }
 
-impl fmt::Display for Mnemonic {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "{}", self.rendered())
-    }
-}
+display_using_render! { Mnemonic }
 
 impl disassemble::Render for Mnemonic {
     fn render(

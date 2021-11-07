@@ -1,45 +1,30 @@
-use crate::{assembly::Syntax, instruction::Instruction};
+use crate::{
+    assembly::Syntax,
+    instruction::{self, Instruction},
+};
 use std::fmt;
 
-macro_rules! impl_render_for_int {
-    ($ty:ty) => {
-        impl Render for $ty {
-            fn render(
-                &self,
-                ctx: Context,
-                formatter: &mut fmt::Formatter,
-            ) -> fmt::Result {
-                match (ctx.config().base, ctx.config().keyword_case) {
-                    (Base::Hex, KeywordCase::Lower) => {
-                        write!(formatter, "%{:x}", self)
-                    },
-                    (Base::Hex, KeywordCase::Upper) => {
-                        write!(formatter, "%{:X}", self)
-                    },
-                    (Base::Decimal, _) => write!(formatter, "{}", self),
-                }
-            }
-        }
-    };
-}
-
-pub struct Disassembler<I, E>
-where
-    I: Iterator<Item = Result<Instruction, E>>,
-{
-    instructions: I,
+#[derive(Debug, Clone)]
+pub struct Disassembler {
     address: u16,
+    config: Config,
 }
 
-impl<I, E> Disassembler<I, E>
-where
-    I: Iterator<Item = Result<Instruction, E>>,
-{
-    pub fn new<J>(instructions: J, address: u16) -> Self
-    where
-        J: IntoIterator<IntoIter = I, Item = Result<Instruction, E>>,
-    {
-        Self { instructions: instructions.into_iter(), address }
+impl Disassembler {
+    pub fn new(address: u16) -> Self {
+        Self::with_config(address, Config::default())
+    }
+
+    pub fn with_config(address: u16, config: Config) -> Self {
+        Self { address, config }
+    }
+
+    pub fn next(&mut self, instruction: Instruction) -> instruction::Addressed {
+        let addressed =
+            instruction::Addressed { address: self.address, instruction };
+
+        self.address = self.address.wrapping_add(1);
+        addressed
     }
 }
 
@@ -71,6 +56,12 @@ impl Default for Config {
             base: Base::Decimal,
             dump_orgs: false,
         }
+    }
+}
+
+impl Config {
+    pub fn for_display() -> Self {
+        Self { syntax: Syntax::Detailed, base: Base::Hex, ..Self::default() }
     }
 }
 
@@ -117,16 +108,38 @@ where
     }
 }
 
-impl_render_for_int! { u8 }
-impl_render_for_int! { i8 }
-impl_render_for_int! { u16 }
-impl_render_for_int! { i16 }
-impl_render_for_int! { u32 }
-impl_render_for_int! { i32 }
-impl_render_for_int! { u64 }
-impl_render_for_int! { i64 }
-impl_render_for_int! { u128 }
-impl_render_for_int! { i128 }
+macro_rules! render_for_int {
+    ($ty:ty) => {
+        impl Render for $ty {
+            fn render(
+                &self,
+                ctx: Context,
+                formatter: &mut fmt::Formatter,
+            ) -> fmt::Result {
+                match (ctx.config().base, ctx.config().keyword_case) {
+                    (Base::Hex, KeywordCase::Lower) => {
+                        write!(formatter, "%{:x}", self)
+                    },
+                    (Base::Hex, KeywordCase::Upper) => {
+                        write!(formatter, "%{:X}", self)
+                    },
+                    (Base::Decimal, _) => write!(formatter, "{}", self),
+                }
+            }
+        }
+    };
+}
+
+render_for_int! { u8 }
+render_for_int! { i8 }
+render_for_int! { u16 }
+render_for_int! { i16 }
+render_for_int! { u32 }
+render_for_int! { i32 }
+render_for_int! { u64 }
+render_for_int! { i64 }
+render_for_int! { u128 }
+render_for_int! { i128 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Renderer<T>

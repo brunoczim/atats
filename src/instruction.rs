@@ -8,7 +8,7 @@ pub use opcode::Opcode;
 
 use crate::{
     addrmode::{Operand, OperandSize},
-    assembly::{self, disassemble},
+    assembly::disassemble,
     binary::{Decode, Decoder, Encode, Encoder, NoConfig},
     error::MachineError,
     machine::{InterruptKind, Machine},
@@ -415,11 +415,7 @@ impl disassemble::Render for Instruction {
     }
 }
 
-impl fmt::Display for Instruction {
-    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "{} {}", self.mnemonic, self.operand)
-    }
-}
+display_using_render! { Instruction }
 
 impl Encode for Instruction {
     fn encode<E>(&self, encoder: &mut E) -> Result<(), E::Error>
@@ -447,3 +443,28 @@ impl Decode for Instruction {
         Ok(Self { mnemonic: opcode.mnemonic, operand })
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Addressed {
+    pub address: u16,
+    pub instruction: Instruction,
+}
+
+impl disassemble::Render for Addressed {
+    fn render(
+        &self,
+        ctx: disassemble::Context,
+        formatter: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        match ctx.config().keyword_case {
+            disassemble::KeywordCase::Lower => write!(formatter, "org")?,
+            disassemble::KeywordCase::Upper => write!(formatter, "ORG")?,
+        }
+
+        write!(formatter, " {}\n", ctx.renderer(self.address))?;
+        write!(formatter, "{}\n", ctx.renderer(self.instruction))?;
+        Ok(())
+    }
+}
+
+display_using_render! { Addressed }

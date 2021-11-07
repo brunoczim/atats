@@ -1,3 +1,6 @@
+#[macro_use]
+mod macros;
+
 pub mod error;
 pub mod memory;
 pub mod addrmode;

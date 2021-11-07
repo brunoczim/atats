@@ -5,7 +5,6 @@ use crate::{
 };
 use std::fmt;
 
-#[allow(unused_macros)]
 macro_rules! types_addrmode {
     (
         match instr_type {
