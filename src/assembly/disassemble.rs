@@ -19,11 +19,15 @@ impl Disassembler {
         Self { address, config }
     }
 
+    pub fn address(&self) -> u16 {
+        self.address
+    }
+
     pub fn next(&mut self, instruction: Instruction) -> instruction::Addressed {
         let addressed =
             instruction::Addressed { address: self.address, instruction };
 
-        self.address = self.address.wrapping_add(1);
+        self.address = self.address.wrapping_add(instruction.size());
         addressed
     }
 }
@@ -36,6 +40,7 @@ pub enum KeywordCase {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Base {
+    Binary,
     Decimal,
     Hex,
 }
@@ -117,13 +122,14 @@ macro_rules! render_for_int {
                 formatter: &mut fmt::Formatter,
             ) -> fmt::Result {
                 match (ctx.config().base, ctx.config().keyword_case) {
+                    (Base::Binary, _) => write!(formatter, "%{}", self),
+                    (Base::Decimal, _) => write!(formatter, "{}", self),
                     (Base::Hex, KeywordCase::Lower) => {
-                        write!(formatter, "%{:x}", self)
+                        write!(formatter, "${:x}", self)
                     },
                     (Base::Hex, KeywordCase::Upper) => {
-                        write!(formatter, "%{:X}", self)
+                        write!(formatter, "${:X}", self)
                     },
-                    (Base::Decimal, _) => write!(formatter, "{}", self),
                 }
             }
         }

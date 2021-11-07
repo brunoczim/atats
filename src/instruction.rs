@@ -26,7 +26,7 @@ impl Instruction {
         Opcode { mnemonic: self.mnemonic, addrmode: self.operand.addrmode() }
     }
 
-    pub fn size(self) -> usize {
+    pub fn size(self) -> u16 {
         1 + self.operand.size()
     }
 

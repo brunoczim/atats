@@ -8,7 +8,7 @@ use crate::{
 use std::fmt;
 
 pub trait OperandSize {
-    fn size(&self) -> usize;
+    fn size(&self) -> u16;
 
     fn renders_empty(&self, _ctx: disassemble::Context) -> bool {
         false
@@ -47,7 +47,7 @@ pub struct Absolute {
 }
 
 impl OperandSize for Absolute {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         2
     }
 }
@@ -74,7 +74,7 @@ pub struct AbsoluteX {
 }
 
 impl OperandSize for AbsoluteX {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         2
     }
 }
@@ -108,7 +108,7 @@ pub struct AbsoluteY {
 }
 
 impl OperandSize for AbsoluteY {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         2
     }
 }
@@ -142,7 +142,7 @@ pub struct Immediate {
 }
 
 impl OperandSize for Immediate {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         1
     }
 }
@@ -169,7 +169,7 @@ pub struct Indirect {
 }
 
 impl OperandSize for Indirect {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         2
     }
 }
@@ -198,7 +198,7 @@ pub struct XIndirect {
 }
 
 impl OperandSize for XIndirect {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         1
     }
 }
@@ -235,7 +235,7 @@ pub struct IndirectY {
 }
 
 impl OperandSize for IndirectY {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         1
     }
 }
@@ -274,7 +274,7 @@ pub struct Relative {
 }
 
 impl OperandSize for Relative {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         1
     }
 }
@@ -310,7 +310,7 @@ pub struct Zeropage {
 }
 
 impl OperandSize for Zeropage {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         1
     }
 }
@@ -329,7 +329,7 @@ impl disassemble::Render for Zeropage {
     ) -> fmt::Result {
         match ctx.config().syntax {
             assembly::Syntax::Detailed => {
-                write!(formatter, "0, {}", ctx.renderer(self.address))
+                write!(formatter, "{}, 0", ctx.renderer(self.address))
             },
             _ => write!(formatter, "{}", ctx.renderer(self.address)),
         }
@@ -342,7 +342,7 @@ pub struct ZeropageX {
 }
 
 impl OperandSize for ZeropageX {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         1
     }
 }
@@ -361,17 +361,17 @@ impl disassemble::Render for ZeropageX {
     ) -> fmt::Result {
         match (ctx.config().syntax, ctx.config().keyword_case) {
             (assembly::Syntax::Detailed, disassemble::KeywordCase::Lower) => {
-                write!(formatter, "0, {}, x", ctx.renderer(self.address))
+                write!(formatter, "{}, 0, x", ctx.renderer(self.address))
             },
             (assembly::Syntax::Detailed, disassemble::KeywordCase::Upper) => {
-                write!(formatter, "0, {}, X", ctx.renderer(self.address))
+                write!(formatter, "{}, 0, X", ctx.renderer(self.address))
             },
 
             (_, disassemble::KeywordCase::Lower) => {
-                write!(formatter, "{}, x", ctx.renderer(self.address))
+                write!(formatter, "{}, 0, x", ctx.renderer(self.address))
             },
             (_, disassemble::KeywordCase::Upper) => {
-                write!(formatter, "{}, X", ctx.renderer(self.address))
+                write!(formatter, "{}, 0, X", ctx.renderer(self.address))
             },
         }
     }
@@ -383,7 +383,7 @@ pub struct ZeropageY {
 }
 
 impl OperandSize for ZeropageY {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         1
     }
 }
@@ -402,17 +402,17 @@ impl disassemble::Render for ZeropageY {
     ) -> fmt::Result {
         match (ctx.config().syntax, ctx.config().keyword_case) {
             (assembly::Syntax::Detailed, disassemble::KeywordCase::Lower) => {
-                write!(formatter, "0, {}, y", ctx.renderer(self.address))
+                write!(formatter, "{}, 0, y", ctx.renderer(self.address))
             },
             (assembly::Syntax::Detailed, disassemble::KeywordCase::Upper) => {
-                write!(formatter, "0, {}, Y", ctx.renderer(self.address))
+                write!(formatter, "{}, 0, Y", ctx.renderer(self.address))
             },
 
             (_, disassemble::KeywordCase::Lower) => {
-                write!(formatter, "{}, y", ctx.renderer(self.address))
+                write!(formatter, "{}, 0, y", ctx.renderer(self.address))
             },
             (_, disassemble::KeywordCase::Upper) => {
-                write!(formatter, "{}, Y", ctx.renderer(self.address))
+                write!(formatter, "{}, 0, Y", ctx.renderer(self.address))
             },
         }
     }
@@ -422,7 +422,7 @@ impl disassemble::Render for ZeropageY {
 pub struct Accumulator;
 
 impl OperandSize for Accumulator {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         0
     }
 }
@@ -450,7 +450,7 @@ impl disassemble::Render for Accumulator {
 pub struct Implied;
 
 impl OperandSize for Implied {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         0
     }
 
@@ -654,7 +654,7 @@ impl OperandAddr for Operand {
 }
 
 impl OperandSize for Operand {
-    fn size(&self) -> usize {
+    fn size(&self) -> u16 {
         match self {
             Operand::Acc(operand) => operand.size(),
             Operand::Abs(operand) => operand.size(),

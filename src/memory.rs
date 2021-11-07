@@ -78,7 +78,7 @@ pub struct RomBank {
 impl RomBank {
     pub const SIZE: usize = 0x1000;
 
-    pub const OFFSET: u16 = 0x1000;
+    pub const OFFSET: u16 = 0xF000;
 
     pub fn new(content: [u8; Self::SIZE]) -> Self {
         Self { bytes: content }
